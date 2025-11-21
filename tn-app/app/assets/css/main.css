@@ -1,0 +1,17 @@
+@import 'tailwindcss';
+@import '@nuxt/ui';
+
+/* base color: oklch(0.7192 0.1631 240.08), #0cafff */
+@theme static {
+	--color-brand-50: oklch(0.95 0.1631 240.08);
+	--color-brand-100: oklch(0.9 0.1631 240.08);
+	--color-brand-200: oklch(0.8 0.1631 240.08);
+	--color-brand-300: oklch(0.75 0.1631 240.08);
+	--color-brand-400: oklch(0.7192 0.1631 240.08);
+	--color-brand-500: oklch(0.6 0.1631 240.08);
+	--color-brand-600: oklch(0.5 0.1631 240.08);
+	--color-brand-700: oklch(0.4 0.1631 240.08);
+	--color-brand-800: oklch(0.3 0.1631 240.08);
+	--color-brand-900: oklch(0.2 0.1631 240.08);
+	--color-brand-950: oklch(0.1 0.1631 240.08);
+}
