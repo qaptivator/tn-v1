@@ -30,5 +30,8 @@ export default defineNuxtConfig({
 	},
 	vite: {
 		plugins: [require('@rollup/plugin-graphql')()],
+		optimizeDeps: {
+			include: ['phaser'],
+		  },
 	},
 })

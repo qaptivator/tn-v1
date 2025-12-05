@@ -1,6 +1,8 @@
 <template>
 	<div>
-		<NuxtPage />
+		<UApp>
+			<NuxtPage />
+		</UApp>
 	</div>
 </template>
 <script setup lang="ts"></script>
