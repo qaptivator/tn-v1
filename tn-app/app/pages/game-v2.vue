@@ -23,10 +23,8 @@
 					class="bg-slate-900 px-3 py-2 rounded flex justify-between items-center"
 				>
 					<span class="text-base text-gray-300">DEFENSE TURN</span>
-					<span
-						id="turn-count"
-						class="text-2xl font-black text-yellow-400 drop-shadow-lg"
-						>1/5</span
+					<span class="text-2xl font-black text-yellow-400 drop-shadow-lg"
+						>{{ gameState.turn }}/{{ MAX_TURNS }}</span
 					>
 				</div>
 
@@ -34,37 +32,42 @@
 				<div>
 					<div class="flex justify-between text-xs text-gray-500 mb-0.5">
 						<span>POWER GRID</span>
-						<span id="grid-percent">100%</span>
+						<span>{{ gridPercent }}%</span>
 					</div>
 					<div
 						class="w-full h-4 bg-slate-800 border border-gray-600 rounded overflow-hidden"
 					>
 						<div
-							id="grid-bar"
-							class="h-full bg-yellow-600 transition-all duration-300"
-							style="width: 100%"
+							class="h-full transition-all duration-300"
+							:style="{
+								width: gridPercent + '%',
+								backgroundColor: gridPercent < 30 ? '#ff0000' : '#e6b800',
+							}"
 						></div>
 					</div>
 				</div>
 
 				<!-- Enemy Intent -->
 				<div class="text-xs text-gray-500">
-					<span id="enemy-intent-list">Enemies are preparing...</span>
+					<span>{{
+						gameState.enemiesAttacking > 0
+							? `${gameState.enemiesAttacking} Threats detected!`
+							: 'No imminent threats.'
+					}}</span>
 				</div>
 
 				<!-- Buttons -->
 				<UButton
-					id="btn-end-turn"
 					label="End Turn"
 					class="w-full"
+					:disabled="!gameState.playerTurn || gameState.gameOver"
 					@click="game?.scene?.endPlayerTurn()"
 				>
 				</UButton>
 				<UButton
-					id="btn-undo-move"
 					label="Undo Move"
 					class="w-full"
-					disabled
+					:disabled="!canUndoMove"
 					@click="game?.scene?.undoMove()"
 				>
 				</UButton>
@@ -72,42 +75,68 @@
 
 			<!-- Bottom Left: Unit Actions -->
 			<div
-				id="unit-actions"
-				class="absolute bottom-5 left-5 w-72 pointer-events-auto bg-black/85 border-2 border-gray-500 p-3 rounded-lg backdrop-blur-sm shadow-lg hidden"
+				v-if="gameState.selectedUnit"
+				class="absolute bottom-5 left-5 w-72 pointer-events-auto bg-black/85 border-2 border-gray-500 p-3 rounded-lg backdrop-blur-sm shadow-lg"
 			>
 				<h1
-					id="selected-unit-name"
 					class="m-0 mb-2.5 text-lg font-bold text-white uppercase tracking-wider"
 				>
-					MECH
+					{{ gameState.selectedUnit.type.toUpperCase() }} MECH
 				</h1>
 				<div class="flex gap-2">
 					<UButton
-						id="btn-attack"
-						label="Attack (E)"
-						@click="game?.scene?.enterAttackMode"
+						:label="gameState.selectedUnit.acted ? 'ATTACKED' : 'ATTACK (E)'"
+						:disabled="gameState.selectedUnit.acted"
+						@click="game?.scene?.enterAttackMode()"
 					>
 					</UButton>
 				</div>
-				<p
-					id="action-desc"
-					class="text-xs text-gray-600 mt-1"
-				>
-					Select a target to fire. Press Q/Right-Click to Cancel.
+				<p class="text-xs text-gray-600 mt-1">
+					{{
+						gameState.selectedUnit.moved
+							? 'Unit moved. Select Attack target or Undo Move (Q/Right-Click to Cancel).'
+							: 'Click Green tiles to Move. Press Q/Right-Click to Cancel.'
+					}}
 				</p>
 			</div>
 		</div>
 	</div>
 </template>
-<script setup lang="ts">
-import { ColonyScene } from '~/scenes/ColonyScene'
 
+<script setup lang="ts">
+import { ColonyScene } from '~/scenes/ColonyScene2'
+import { reactive, ref, computed } from 'vue'
+
+const MAX_TURNS = 5
 const count = ref(0)
 const game = ref<ColonyScene | undefined>()
-// note: this simply doesnt work
-//const scene = computed(() => game.value?.scene)
+
+const gameState = reactive({
+	turn: 1,
+	powerGrid: 7,
+	maxPowerGrid: 7,
+	gameOver: false,
+	playerTurn: true,
+	selectedUnit: null as any,
+	enemiesAttacking: 0,
+})
+
+const gridPercent = computed(() =>
+	Math.floor((gameState.powerGrid / gameState.maxPowerGrid) * 100)
+)
+
+const canUndoMove = computed(
+	() =>
+		gameState.selectedUnit &&
+		gameState.selectedUnit.moved &&
+		!gameState.selectedUnit.acted
+)
+
 onMounted(() => {
-	game.value = new ColonyScene('game-container', { count })
+	game.value = new ColonyScene('game-container', {
+		count,
+		gameState,
+	})
 })
 
 onUnmounted(() => {
@@ -115,10 +144,6 @@ onUnmounted(() => {
 		game.value.destroy()
 	}
 })
-
-function endTurn() {
-	console.log('endTurn', game.value, game.value?.scene)
-	game.value?.scene?.endPlayerTurn()
-}
 </script>
+
 <style scoped lang="css"></style>
