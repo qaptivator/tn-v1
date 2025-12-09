@@ -25,8 +25,8 @@ declare module '#app' {
 	}
 }*/
 
-declare module 'Phaser' {
+/*declare module 'Phaser' {
 	interface Game {
 		data: any
 	}
-}
+}*/

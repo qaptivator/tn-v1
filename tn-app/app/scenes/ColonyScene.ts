@@ -242,8 +242,13 @@ class Unit {
 	}
 }
 
+import type { Ref } from 'vue'
 // Main Scene
 class MainScene extends Phaser.Scene {
+	state!: {
+		count: Ref<number>
+	}
+
 	grid: any[] = []
 	units: Unit[] = []
 	turn: number = 1
@@ -497,8 +502,9 @@ class MainScene extends Phaser.Scene {
 	}
 
 	selectUnit(unit: Unit): void {
+		//this.game.data.count.value += 1
+		this.state.count.value += 1
 		// @ts-ignore
-		this.game.data.count.value += 1
 
 		if (this.selectedUnit) {
 			this.selectedUnit.container.setScale(1)
@@ -619,6 +625,7 @@ class MainScene extends Phaser.Scene {
 	}
 
 	undoMove(): void {
+		console.log('undoMove', this.selectedUnit)
 		if (
 			this.selectedUnit &&
 			this.selectedUnit.moved &&
@@ -1229,10 +1236,23 @@ export class ColonyScene extends BaseScene {
 	game!: Phaser.Game
 	scene!: MainScene
 
-	constructor(parent: HTMLElement | string, data?: any) {
-		super(parent, data)
+	constructor(parent: HTMLElement | string, state?: any) {
+		super(parent, state)
 
+		this.scene = new MainScene()
+		this.scene.state = state
 		const config: Phaser.Types.Core.GameConfig = {
+			type: Phaser.AUTO,
+			//parent: 'game-container',
+			parent: parent,
+			width: window.innerWidth,
+			height: window.innerHeight,
+			backgroundColor: '#1a1a1a',
+			scene: this.scene,
+		}
+		this.game = new Phaser.Game(config)
+
+		/*const config: Phaser.Types.Core.GameConfig = {
 			type: Phaser.AUTO,
 			//parent: 'game-container',
 			parent: parent,
@@ -1245,12 +1265,13 @@ export class ColonyScene extends BaseScene {
 		this.game = new Phaser.Game(config)
 		// stores stuff like pinia stores, vue refs etc
 		//@ts-ignore
-		this.game.data = data
+		//this.game.state = state
 
 		setTimeout(() => {
 			console.log('phaser timeout', 'scene', this.game.scene.scenes.length)
 			this.scene = this.game.scene.getScene('MainScene') as MainScene
-		}, 10)
+			this.scene.state = state
+		}, 10)*/
 	}
 
 	destroy() {

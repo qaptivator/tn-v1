@@ -57,7 +57,7 @@
 					id="btn-end-turn"
 					label="End Turn"
 					class="w-full"
-					@click="endTurn"
+					@click="game?.scene?.endPlayerTurn()"
 				>
 				</UButton>
 				<UButton
@@ -65,7 +65,7 @@
 					label="Undo Move"
 					class="w-full"
 					disabled
-					@click="game?.scene?.undoMove"
+					@click="game?.scene?.undoMove()"
 				>
 				</UButton>
 			</div>
@@ -85,7 +85,7 @@
 					<UButton
 						id="btn-attack"
 						label="Attack (E)"
-						@click="game?.scene?.enterAttackMode"
+						@click="game?.scene?.enterAttackMode()"
 					>
 					</UButton>
 				</div>
@@ -104,6 +104,7 @@ import { ColonyScene } from '~/scenes/ColonyScene'
 
 const count = ref(0)
 const game = ref<ColonyScene | undefined>()
+// note: this simply doesnt work
 //const scene = computed(() => game.value?.scene)
 onMounted(() => {
 	game.value = new ColonyScene('game-container', { count })
