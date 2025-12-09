@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import BaseScene from './BaseScene'
+import { BaseScene } from './BaseScene'
 
 // Constants
 const TILE_W = 64
@@ -259,8 +259,8 @@ class MainScene extends Phaser.Scene {
 	cursorGraphics!: Phaser.GameObjects.Graphics
 
 	constructor() {
-		//super({ key: 'MainScene' })
-		super('MainScene')
+		super({ key: 'MainScene' })
+		//super('MainScene')
 	}
 
 	create(): void {
@@ -497,6 +497,9 @@ class MainScene extends Phaser.Scene {
 	}
 
 	selectUnit(unit: Unit): void {
+		// @ts-ignore
+		this.game.data.count.value += 1
+
 		if (this.selectedUnit) {
 			this.selectedUnit.container.setScale(1)
 		}
@@ -1226,8 +1229,8 @@ export class ColonyScene extends BaseScene {
 	game!: Phaser.Game
 	scene!: MainScene
 
-	constructor(parent: HTMLElement | string) {
-		super(parent)
+	constructor(parent: HTMLElement | string, data?: any) {
+		super(parent, data)
 
 		const config: Phaser.Types.Core.GameConfig = {
 			type: Phaser.AUTO,
@@ -1240,29 +1243,14 @@ export class ColonyScene extends BaseScene {
 		}
 
 		this.game = new Phaser.Game(config)
-		console.log(
-			'phaser constructor',
-			'this.game',
-			this.game,
-			'scene',
-			this.game.scene,
-			'method',
-			this.game.scene.getScene,
-			'value',
-			this.game.scene.getScene('MainScene'),
-			'value2',
-			this.game.scene.scenes.length
-		)
+		// stores stuff like pinia stores, vue refs etc
+		//@ts-ignore
+		this.game.data = data
 
 		setTimeout(() => {
 			console.log('phaser timeout', 'scene', this.game.scene.scenes.length)
-			// @ts-ignore
 			this.scene = this.game.scene.getScene('MainScene') as MainScene
 		}, 10)
-		//this.scene = this.game.scene.getScene('MainScene') as MainScene
-		// @ts-ignore
-		//this.scene = this.game.scene.getScene('MainScene') as MainScene
-		//this.scene = this.game.scene.scenes[0] as MainScene
 	}
 
 	destroy() {

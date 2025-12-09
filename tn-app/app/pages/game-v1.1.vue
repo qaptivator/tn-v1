@@ -16,6 +16,7 @@
 				id="top-left-panel"
 				class="absolute top-5 left-5 w-72 flex flex-col gap-2.5 pointer-events-auto bg-black/85 border-2 border-gray-500 p-3 rounded-lg backdrop-blur-sm shadow-lg"
 			>
+				Count: {{ count }}
 				<!-- Turn Info -->
 				<div
 					id="turn-info"
@@ -101,10 +102,11 @@
 <script setup lang="ts">
 import { ColonyScene } from '~/scenes/ColonyScene'
 
+const count = ref(0)
 const game = ref<ColonyScene | undefined>()
 //const scene = computed(() => game.value?.scene)
 onMounted(() => {
-	game.value = new ColonyScene('game-container')
+	game.value = new ColonyScene('game-container', { count })
 })
 
 onUnmounted(() => {
