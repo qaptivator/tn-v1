@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import type BaseScene from './BaseScene'
+import BaseScene from './BaseScene'
 
 // Constants
 const TILE_W = 64
@@ -1221,29 +1221,32 @@ class MainScene extends Phaser.Scene {
 	}
 }
 
-export class ColonyScene implements BaseScene {
-    game!: Phaser.Game
-    scene!: MainScene
+export class ColonyScene extends BaseScene {
+	game!: Phaser.Game
+	scene!: MainScene
 
-    create() {
-        const config: Phaser.Types.Core.GameConfig = {
-            type: Phaser.AUTO,
-            parent: 'game-container',
-            width: window.innerWidth,
-            height: window.innerHeight,
-            backgroundColor: '#1a1a1a',
-            scene: MainScene,
-        }
-    
-        this.game = new Phaser.Game(config)
-        this.scene = this.game.scene.getScene('MainScene') as MainScene
-    }
+	constructor(parent: HTMLElement | string) {
+		super(parent)
 
-    destroy() {
-        this.game.destroy(true)
-    }
+		const config: Phaser.Types.Core.GameConfig = {
+			type: Phaser.AUTO,
+			//parent: 'game-container',
+			parent: parent,
+			width: window.innerWidth,
+			height: window.innerHeight,
+			backgroundColor: '#1a1a1a',
+			scene: MainScene,
+		}
 
-    resize() {
-        this.game.scale.resize(window.innerWidth, window.innerHeight)
-    }
+		this.game = new Phaser.Game(config)
+		this.scene = this.game.scene.getScene('MainScene') as MainScene
+	}
+
+	destroy() {
+		this.game.destroy(true)
+	}
+
+	resize() {
+		this.game.scale.resize(window.innerWidth, window.innerHeight)
+	}
 }
