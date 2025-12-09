@@ -259,7 +259,8 @@ class MainScene extends Phaser.Scene {
 	cursorGraphics!: Phaser.GameObjects.Graphics
 
 	constructor() {
-		super({ key: 'MainScene' })
+		//super({ key: 'MainScene' })
+		super('MainScene')
 	}
 
 	create(): void {
@@ -1239,7 +1240,29 @@ export class ColonyScene extends BaseScene {
 		}
 
 		this.game = new Phaser.Game(config)
-		this.scene = this.game.scene.getScene('MainScene') as MainScene
+		console.log(
+			'phaser constructor',
+			'this.game',
+			this.game,
+			'scene',
+			this.game.scene,
+			'method',
+			this.game.scene.getScene,
+			'value',
+			this.game.scene.getScene('MainScene'),
+			'value2',
+			this.game.scene.scenes.length
+		)
+
+		setTimeout(() => {
+			console.log('phaser timeout', 'scene', this.game.scene.scenes.length)
+			// @ts-ignore
+			this.scene = this.game.scene.getScene('MainScene') as MainScene
+		}, 10)
+		//this.scene = this.game.scene.getScene('MainScene') as MainScene
+		// @ts-ignore
+		//this.scene = this.game.scene.getScene('MainScene') as MainScene
+		//this.scene = this.game.scene.scenes[0] as MainScene
 	}
 
 	destroy() {
