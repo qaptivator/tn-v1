@@ -1,8 +1,7 @@
 import Phaser from 'phaser'
-import { onMounted, onUnmounted } from 'vue'
 import type BaseScene from './BaseScene'
 
-// ==================== CONSTANTS ====================
+// Constants
 const TILE_W = 64
 const TILE_H = 32
 const GRID_SIZE = 8
@@ -27,7 +26,11 @@ const DIRS = [
 	{ x: -1, y: 0 },
 ]
 
-// ==================== UNIT CLASS ====================
+// use refs here
+// Game State
+//let game: Phaser.Game
+
+// Unit Class
 class Unit {
 	scene: MainScene
 	type: string
@@ -239,8 +242,8 @@ class Unit {
 	}
 }
 
-// ==================== MAIN SCENE ====================
-class MainScene extends Phaser.Scene implements BaseScene {
+// Main Scene
+class MainScene extends Phaser.Scene {
 	grid: any[] = []
 	units: Unit[] = []
 	turn: number = 1
@@ -301,21 +304,6 @@ class MainScene extends Phaser.Scene implements BaseScene {
 			this.cursorGraphics.lineStyle(2, 0xffffff, 0.5)
 			this.drawIsoTile(this.cursorGraphics, screen.x, screen.y, 0, false)
 		}
-	}
-
-	resize(): void {
-		this.cameras.main.scrollX = -window.innerWidth / 2
-		this.cameras.main.scrollY = -200
-	}
-
-	destroy(): void {
-		this.input.off('pointerdown')
-		this.input.keyboard?.off('keydown-Q')
-		this.input.keyboard?.off('keydown-E')
-		this.units.forEach((u) => u.container.destroy())
-		this.grid.forEach((row) =>
-			row.forEach((tile: any) => tile.sprite?.destroy())
-		)
 	}
 
 	createGrid(): void {
@@ -790,6 +778,7 @@ class MainScene extends Phaser.Scene implements BaseScene {
 	}
 
 	endPlayerTurn(): void {
+		console.log('endPlayerTurn')
 		if (this.gameOver) return
 
 		const btnEndTurn = document.getElementById(
@@ -801,6 +790,8 @@ class MainScene extends Phaser.Scene implements BaseScene {
 		this.deselect()
 
 		let delay = 0
+
+		console.log('endPlayerTurn start')
 
 		this.units.forEach((u) => {
 			if (!u.isPlayer && !u.dead && u.intent) {
@@ -858,6 +849,8 @@ class MainScene extends Phaser.Scene implements BaseScene {
 				if (btnEndTurnNew) btnEndTurnNew.disabled = false
 			}
 		})
+
+		console.log('endPlayerTurn end')
 	}
 
 	spawnEnemy(): void {
@@ -1228,32 +1221,29 @@ class MainScene extends Phaser.Scene implements BaseScene {
 	}
 }
 
-// ==================== GAME INITIALIZATION ====================
-let game: Phaser.Game
-let scene: MainScene
+export class ColonyScene implements BaseScene {
+    game!: Phaser.Game
+    scene!: MainScene
 
-onMounted(() => {
-	const config: Phaser.Types.Core.GameConfig = {
-		type: Phaser.AUTO,
-		parent: 'game-container',
-		width: window.innerWidth,
-		height: window.innerHeight,
-		backgroundColor: '#1a1a1a',
-		scene: MainScene,
-	}
+    create() {
+        const config: Phaser.Types.Core.GameConfig = {
+            type: Phaser.AUTO,
+            parent: 'game-container',
+            width: window.innerWidth,
+            height: window.innerHeight,
+            backgroundColor: '#1a1a1a',
+            scene: MainScene,
+        }
+    
+        this.game = new Phaser.Game(config)
+        this.scene = this.game.scene.getScene('MainScene') as MainScene
+    }
 
-	game = new Phaser.Game(config)
-	scene = game.scene.getScene('MainScene') as MainScene
+    destroy() {
+        this.game.destroy(true)
+    }
 
-	window.addEventListener('resize', () => {
-		game.scale.resize(window.innerWidth, window.innerHeight)
-		scene.resize()
-	})
-})
-
-onUnmounted(() => {
-	if (game) {
-		scene.destroy()
-		game.destroy(true)
-	}
-})
+    resize() {
+        this.game.scale.resize(window.innerWidth, window.innerHeight)
+    }
+}

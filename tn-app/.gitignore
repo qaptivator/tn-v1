@@ -24,3 +24,5 @@ logs
 !.env.example
 
 .dev/archive
+.dev
+tn-app/.dev
