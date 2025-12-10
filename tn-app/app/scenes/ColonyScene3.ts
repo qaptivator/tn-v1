@@ -1,3 +1,111 @@
+const _buildings_test1 = [
+	{
+		id: 'b-0',
+		q: -8,
+		r: -7,
+		type: 'quarry',
+		sprite: {},
+	},
+	{
+		id: 'b-1',
+		q: -8,
+		r: -8,
+		type: 'factory',
+		sprite: {},
+	},
+	{
+		id: 'b-2', // depth -178
+		q: -6,
+		r: -7,
+		type: 'house',
+		sprite: {},
+	},
+	{
+		id: 'b-3',
+		q: -8,
+		r: -4,
+		type: 'factory',
+		sprite: {},
+	},
+	{
+		id: 'b-4',
+		q: -7,
+		r: -5,
+		type: 'factory',
+		sprite: {},
+	},
+	{
+		id: 'b-5', // depth -210
+		q: -7,
+		r: -8,
+		type: 'house',
+		sprite: {},
+	},
+	{
+		id: 'b-6',
+		q: -8,
+		r: -6,
+		type: 'house',
+		sprite: {},
+	},
+	{
+		id: 'b-7',
+		q: -8,
+		r: -3,
+		type: 'house',
+		sprite: {},
+	},
+	{
+		id: 'b-8',
+		q: -6,
+		r: -8,
+		type: 'factory',
+		sprite: {},
+	},
+	{
+		id: 'b-9',
+		q: -5,
+		r: -8,
+		type: 'quarry',
+		sprite: {},
+	},
+	{
+		id: 'b-10',
+		q: -7,
+		r: -7,
+		type: 'factory',
+		sprite: {},
+	},
+	{
+		id: 'b-11',
+		q: -5,
+		r: -7,
+		type: 'house',
+		sprite: {},
+	},
+	{
+		id: 'b-12',
+		q: -6,
+		r: -6,
+		type: 'quarry',
+		sprite: {},
+	},
+	{
+		id: 'b-13',
+		q: -4,
+		r: -8,
+		type: 'house',
+		sprite: {},
+	},
+	{
+		id: 'b-14',
+		q: -8,
+		r: -5,
+		type: 'quarry',
+		sprite: {},
+	},
+]
+
 import Phaser from 'phaser'
 import { BaseScene } from './BaseScene'
 
@@ -15,7 +123,7 @@ interface Building {
 	id: string
 	q: number
 	r: number
-	type: 'factory' | 'quarry'
+	type: 'factory' | 'quarry' | 'house'
 	sprite: Phaser.GameObjects.Image
 }
 
@@ -63,6 +171,10 @@ export class IsometricColonyScene extends Phaser.Scene {
 			'quarry',
 			`${window.location.origin}/textures/colony/quarry.png`
 		)
+		this.load.image(
+			'house',
+			`${window.location.origin}/textures/colony/house.png`
+		)
 	}
 
 	create() {
@@ -80,7 +192,10 @@ export class IsometricColonyScene extends Phaser.Scene {
 		this.renderTerrain()
 
 		// 5. Render Buildings
-		this.placeRandomBuildings(15)
+		//this.generateBuildingData(15)
+		// @ts-ignore
+		this.buildings = _buildings_test1
+		this.renderBuildings()
 
 		// 6. Setup Cursor
 		this.cursorGraphics = this.add.graphics({ x: 0, y: 0 })
@@ -208,7 +323,7 @@ export class IsometricColonyScene extends Phaser.Scene {
 		this.terrainLayer.add(graphics)
 	}
 
-	private placeRandomBuildings(count: number) {
+	private generateBuildingData(count: number) {
 		const types: Array<'factory' | 'quarry'> = ['factory', 'quarry']
 
 		// Shuffle tiles to pick random locations
@@ -220,39 +335,62 @@ export class IsometricColonyScene extends Phaser.Scene {
 			const tile = availableTiles[i]
 			if (!tile) continue
 
-			// Center sprite on tile
 			const type = randomElement(types)
-			const buildingBottomY =
-				tile.centerY + TILE_HEIGHT / 2 + 11 + (tile.centerZ ?? 0)
-			const sprite = this.add.image(
-				tile?.centerX + TILE_WIDTH / 2,
-				buildingBottomY,
-				type
-			)
 
-			// --- KEY FIX: Dynamic Scaling ---
-			// Calculate scale to fit building within 1.5x tile width (allows some overhang)
-			const desiredWidth = TILE_WIDTH * 0.8
-			const scale = desiredWidth / sprite.width
-			sprite.setScale(scale)
-
-			// Origin at bottom-center + slight offset for "thickness"
-			sprite.setOrigin(0.5, 0.9)
-
-			// Basic Depth Sorting (Y-sorting)
-			//sprite.setDepth(tile.centerY)
-			//sprite.setDepth(buildingBottomY)
-
+			// Note: The sprite property is set to a placeholder (any Phaser.GameObjects.Image)
+			// because the Building interface requires it, but it will be replaced in renderBuildings.
 			this.buildings.push({
 				id: `b-${i}`,
 				q: tile.q,
 				r: tile.r,
 				type,
-				sprite,
+				// Temporarily assign a null/dummy sprite until rendering occurs
+				sprite: {} as Phaser.GameObjects.Image,
 			})
+		}
+	}
+
+	private renderBuildings() {
+		// Iterate over the buildings array that was populated by generateBuildingData
+		this.buildings.forEach((building, i) => {
+			const tile = this.tiles.find(
+				(t) => t.q === building.q && t.r === building.r
+			)
+
+			if (!tile) return // Should not happen if data generation was correct
+
+			// Calculate Y position including the (now-removed or zeroed) depth offset
+			const depthOffset = tile.centerZ ?? 0
+			const buildingBottomY = tile.centerY + TILE_HEIGHT / 2 + depthOffset
+
+			const sprite = this.add.image(
+				tile.centerX + TILE_WIDTH / 2,
+				buildingBottomY,
+				building.type
+			)
+
+			// --- Scaling and Alignment ---
+			const desiredWidth = TILE_WIDTH * 0.8
+			const scale = desiredWidth / sprite.width
+
+			sprite.y += 14 // manual offset to align bases (Keep this from your original logic)
+			sprite.setScale(scale)
+
+			// Origin at bottom-center (1.0)
+			sprite.setOrigin(0.5, 1.0)
+
+			// Basic Depth Sorting (Y-sorting)
+			// Use the final calculated screen Y position for correct sorting
+			console.log('setting depth for building', building.id, 'at y', sprite.y)
+			sprite.setDepth(sprite.y)
+
+			// Update the building object with the actual sprite reference
+			building.sprite = sprite
 
 			this.buildingsContainer.add(sprite)
-		}
+		})
+		// ahh so depth in a game object is actually just metadata, and to for it to actually work you need to sort the container as well
+		this.buildingsContainer.sort('depth')
 	}
 
 	private handlePointerMove(pointer: Phaser.Input.Pointer) {
@@ -261,6 +399,7 @@ export class IsometricColonyScene extends Phaser.Scene {
 
 		// Convert World X/Y to Grid Q/R
 		const { q, r } = this.screenToQr(worldPoint.x, worldPoint.y)
+		console.log('handlePointerMove q,r', q, r)
 
 		// Find the tile at the selected Q/R
 		const selectedTile = this.tiles.find((tile) => tile.q === q && tile.r === r)
@@ -276,8 +415,8 @@ export class IsometricColonyScene extends Phaser.Scene {
 		this.cursorGraphics.lineStyle(2, COLORS.highlight, 1) // width, color, alpha
 
 		// Fix the draw ordering
-		const buildingBaseY = y //+ TILE_HEIGHT / 2 + 11
-		console.log('buildingBaseY', buildingBaseY)
+		//const buildingBaseY = y //+ TILE_HEIGHT / 2 + 11
+		//console.log('buildingBaseY', buildingBaseY)
 		//this.cursorGraphics.setDepth(buildingBaseY - 1)
 
 		// Draw diamond outline at cursor
@@ -329,9 +468,10 @@ export class IsometricColonyScene extends Phaser.Scene {
 		const r = (normalizedY - normalizedX) / 2
 
 		return { q: Math.floor(q), r: Math.floor(r) }*/
+		// this edge case of it being either 0 or -0 is so funny
 		const q = (y / (TILE_HEIGHT / 2) + x / (TILE_WIDTH / 2)) / 2
 		const r = (y / (TILE_HEIGHT / 2) - x / (TILE_WIDTH / 2)) / 2
-		return { q: Math.round(q) - 1, r: Math.round(r) }
+		return { q: Math.round(q) - 1, r: Math.round(r) === -0 ? 0 : Math.round(r) }
 	}
 }
 
