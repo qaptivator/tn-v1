@@ -140,8 +140,20 @@ const COLORS = {
 	highlight: 0xffffff,
 }
 
-function randomElement<T>(arr: T[]): T {
-	return arr[Math.floor(Math.random() * arr.length)] as T
+function randomElement<T>(array: T[]): T {
+	return array[Math.floor(Math.random() * array.length)] as T
+}
+
+function shuffle<T>(array: Array<T>): Array<T> {
+	let ri: number
+	let temp: T
+	for (let i = array.length - 1; i >= 0; i--) {
+		ri = Math.floor(Math.random() * (i + 1))
+		temp = array[i] as T
+		array[i] = array[ri] as T
+		array[ri] = temp as T
+	}
+	return array
 }
 
 export class IsometricColonyScene extends Phaser.Scene {
@@ -192,9 +204,9 @@ export class IsometricColonyScene extends Phaser.Scene {
 		this.renderTerrain()
 
 		// 5. Render Buildings
-		//this.generateBuildingData(15)
+		this.generateBuildingData(30)
 		// @ts-ignore
-		this.buildings = _buildings_test1
+		//this.buildings = _buildings_test1
 		this.renderBuildings()
 
 		// 6. Setup Cursor
@@ -324,10 +336,16 @@ export class IsometricColonyScene extends Phaser.Scene {
 	}
 
 	private generateBuildingData(count: number) {
-		const types: Array<'factory' | 'quarry'> = ['factory', 'quarry']
+		const types: Array<'factory' | 'quarry' | 'house'> = [
+			'factory',
+			'quarry',
+			'house',
+		]
 
 		// Shuffle tiles to pick random locations
-		const availableTiles = [...this.tiles].sort(() => 0.5 - Math.random())
+		//const availableTiles = [...this.tiles].sort(() => 0.5 - Math.random())
+		// bro who made this stupid shuffling algorithm which only selected negative qr values? (spoiler alert: it was gemini ai)
+		const availableTiles = shuffle(this.tiles)
 
 		for (let i = 0; i < count; i++) {
 			if (!availableTiles[i]) break
@@ -381,7 +399,7 @@ export class IsometricColonyScene extends Phaser.Scene {
 
 			// Basic Depth Sorting (Y-sorting)
 			// Use the final calculated screen Y position for correct sorting
-			console.log('setting depth for building', building.id, 'at y', sprite.y)
+			//console.log('setting depth for building', building.id, 'at y', sprite.y)
 			sprite.setDepth(sprite.y)
 
 			// Update the building object with the actual sprite reference
@@ -399,7 +417,7 @@ export class IsometricColonyScene extends Phaser.Scene {
 
 		// Convert World X/Y to Grid Q/R
 		const { q, r } = this.screenToQr(worldPoint.x, worldPoint.y)
-		console.log('handlePointerMove q,r', q, r)
+		//console.log('handlePointerMove q,r', q, r)
 
 		// Find the tile at the selected Q/R
 		const selectedTile = this.tiles.find((tile) => tile.q === q && tile.r === r)
