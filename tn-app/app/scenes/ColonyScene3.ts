@@ -156,6 +156,11 @@ function shuffle<T>(array: Array<T>): Array<T> {
 	return array
 }
 
+// -------- CONFIG --------
+const SHOW_BORDER = true
+const RANDOM_DEPTH = true
+// ------------------------
+
 export class IsometricColonyScene extends Phaser.Scene {
 	private tiles: IsometricTile[] = []
 	private buildings: Building[] = []
@@ -260,7 +265,7 @@ export class IsometricColonyScene extends Phaser.Scene {
 					centerX: x,
 					centerY: y,
 					//! depth introduced too much problems (where if a building is behind a raised tile, it will appear over it), so we will implement it later
-					//centerZ: Math.random() * 10, // depth
+					centerZ: RANDOM_DEPTH ? Math.random() * 10 : 0, // depth
 				})
 			}
 		}
@@ -327,8 +332,10 @@ export class IsometricColonyScene extends Phaser.Scene {
 			)*/
 
 			// Optional: Subtle outline to separate tiles
-			//graphics.lineStyle(1, c.side, 0.5)
-			//graphics.strokePath()
+			if (SHOW_BORDER) {
+				graphics.lineStyle(1, c.side, 0.5)
+				graphics.strokePath()
+			}
 		})
 
 		//graphics.setDepth(-1)
