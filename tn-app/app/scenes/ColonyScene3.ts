@@ -8,6 +8,7 @@ interface IsometricTile {
 	type: 'grass' | 'sand' | 'rock'
 	centerX: number
 	centerY: number
+	centerZ?: number // depth
 }
 
 interface Building {
@@ -131,6 +132,8 @@ export class IsometricColonyScene extends Phaser.Scene {
 					type: randomElement(tileTypes),
 					centerX: x,
 					centerY: y,
+					//! depth introduced too much problems (where if a building is behind a raised tile, it will appear over it), so we will implement it later
+					//centerZ: Math.random() * 10, // depth
 				})
 			}
 		}
@@ -147,9 +150,7 @@ export class IsometricColonyScene extends Phaser.Scene {
 			const x = tile.centerX
 			const y = tile.centerY
 			//const depthOffset = Math.random() * 10 // depth offset
-			const depthOffset = 0
-
-			// 1. Draw Side Faces (The "Thickness")
+			const depthOffset = tile.centerZ ?? 0
 
 			// Right Face (Draw Second - This face should now be visible on top of the Left Face)
 			graphics.fillStyle(c.side, 1)
@@ -180,7 +181,7 @@ export class IsometricColonyScene extends Phaser.Scene {
 			graphics.closePath()
 			graphics.fillPath()
 
-			// 2. Draw Top Face
+			// Top Face
 			graphics.fillStyle(c.top, 1)
 			graphics.beginPath()
 			graphics.moveTo(x + TILE_WIDTH / 2, y + depthOffset)
@@ -199,10 +200,11 @@ export class IsometricColonyScene extends Phaser.Scene {
 			)*/
 
 			// Optional: Subtle outline to separate tiles
-			graphics.lineStyle(1, c.side, 0.5)
-			graphics.strokePath()
+			//graphics.lineStyle(1, c.side, 0.5)
+			//graphics.strokePath()
 		})
 
+		//graphics.setDepth(-1)
 		this.terrainLayer.add(graphics)
 	}
 
@@ -220,9 +222,11 @@ export class IsometricColonyScene extends Phaser.Scene {
 
 			// Center sprite on tile
 			const type = randomElement(types)
+			const buildingBottomY =
+				tile.centerY + TILE_HEIGHT / 2 + 11 + (tile.centerZ ?? 0)
 			const sprite = this.add.image(
 				tile?.centerX + TILE_WIDTH / 2,
-				tile?.centerY + TILE_HEIGHT / 2 + 11,
+				buildingBottomY,
 				type
 			)
 
@@ -236,7 +240,8 @@ export class IsometricColonyScene extends Phaser.Scene {
 			sprite.setOrigin(0.5, 0.9)
 
 			// Basic Depth Sorting (Y-sorting)
-			sprite.setDepth(tile.centerY)
+			//sprite.setDepth(tile.centerY)
+			//sprite.setDepth(buildingBottomY)
 
 			this.buildings.push({
 				id: `b-${i}`,
@@ -257,18 +262,36 @@ export class IsometricColonyScene extends Phaser.Scene {
 		// Convert World X/Y to Grid Q/R
 		const { q, r } = this.screenToQr(worldPoint.x, worldPoint.y)
 
-		// Snap highlight to grid
-		const { x, y } = this.qrToScreen(q, r)
+		// Find the tile at the selected Q/R
+		const selectedTile = this.tiles.find((tile) => tile.q === q && tile.r === r)
 
+		if (!selectedTile) {
+			this.cursorGraphics.clear()
+			return
+		}
+
+		// Snap highlight to grid with depth offset
+		const { centerX: x, centerY: y, centerZ: depthOffset = 0 } = selectedTile
 		this.cursorGraphics.clear()
 		this.cursorGraphics.lineStyle(2, COLORS.highlight, 1) // width, color, alpha
 
+		// Fix the draw ordering
+		const buildingBaseY = y //+ TILE_HEIGHT / 2 + 11
+		console.log('buildingBaseY', buildingBaseY)
+		//this.cursorGraphics.setDepth(buildingBaseY - 1)
+
 		// Draw diamond outline at cursor
 		this.cursorGraphics.beginPath()
-		this.cursorGraphics.moveTo(x + TILE_WIDTH / 2, y)
-		this.cursorGraphics.lineTo(x + TILE_WIDTH, y + TILE_HEIGHT / 2)
-		this.cursorGraphics.lineTo(x + TILE_WIDTH / 2, y + TILE_HEIGHT)
-		this.cursorGraphics.lineTo(x, y + TILE_HEIGHT / 2)
+		this.cursorGraphics.moveTo(x + TILE_WIDTH / 2, y + depthOffset)
+		this.cursorGraphics.lineTo(
+			x + TILE_WIDTH,
+			y + TILE_HEIGHT / 2 + depthOffset
+		)
+		this.cursorGraphics.lineTo(
+			x + TILE_WIDTH / 2,
+			y + TILE_HEIGHT + depthOffset
+		)
+		this.cursorGraphics.lineTo(x, y + TILE_HEIGHT / 2 + depthOffset)
 		this.cursorGraphics.closePath()
 		this.cursorGraphics.strokePath()
 	}
