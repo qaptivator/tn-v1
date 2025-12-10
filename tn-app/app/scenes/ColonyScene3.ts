@@ -146,37 +146,57 @@ export class IsometricColonyScene extends Phaser.Scene {
 			const c = COLORS[tile.type]
 			const x = tile.centerX
 			const y = tile.centerY
+			//const depthOffset = Math.random() * 10 // depth offset
+			const depthOffset = 0
 
 			// 1. Draw Side Faces (The "Thickness")
-			// Right Face
+
+			// Right Face (Draw Second - This face should now be visible on top of the Left Face)
 			graphics.fillStyle(c.side, 1)
 			graphics.beginPath()
-			graphics.moveTo(x + TILE_WIDTH / 2, y)
-			graphics.lineTo(x + TILE_WIDTH, y + TILE_HEIGHT / 2)
-			graphics.lineTo(x + TILE_WIDTH, y + TILE_HEIGHT / 2 + TILE_THICKNESS)
-			graphics.lineTo(x + TILE_WIDTH / 2, y + TILE_THICKNESS)
+			graphics.moveTo(
+				x + TILE_WIDTH,
+				y + TILE_HEIGHT / 2 + TILE_THICKNESS + depthOffset
+			)
+			graphics.lineTo(x + TILE_WIDTH, y + TILE_HEIGHT / 2 + depthOffset)
+			graphics.lineTo(x + TILE_WIDTH / 2, y + TILE_HEIGHT + depthOffset)
+			graphics.lineTo(
+				x + TILE_WIDTH / 2,
+				y + TILE_HEIGHT + TILE_THICKNESS + depthOffset
+			)
 			graphics.closePath()
 			graphics.fillPath()
 
-			// Left Face
-			graphics.fillStyle(c.side, 0.8) // Slightly darker for shading
+			// Left Face (Draw First - This is the face that extends to the central vertical line)
+			graphics.fillStyle(c.side, 1) // Slightly darker for shading
 			graphics.beginPath()
-			graphics.moveTo(x + TILE_WIDTH / 2, y + TILE_THICKNESS)
-			graphics.lineTo(x + TILE_WIDTH / 2, y + TILE_HEIGHT + TILE_THICKNESS)
-			graphics.lineTo(x, y + TILE_HEIGHT / 2 + TILE_THICKNESS)
-			graphics.lineTo(x, y + TILE_HEIGHT / 2)
+			graphics.moveTo(x + TILE_WIDTH / 2, y + TILE_THICKNESS + depthOffset)
+			graphics.lineTo(
+				x + TILE_WIDTH / 2,
+				y + TILE_HEIGHT + TILE_THICKNESS + depthOffset
+			)
+			graphics.lineTo(x, y + TILE_HEIGHT / 2 + TILE_THICKNESS + depthOffset)
+			graphics.lineTo(x, y + TILE_HEIGHT / 2 + depthOffset)
 			graphics.closePath()
 			graphics.fillPath()
 
 			// 2. Draw Top Face
 			graphics.fillStyle(c.top, 1)
 			graphics.beginPath()
-			graphics.moveTo(x + TILE_WIDTH / 2, y)
-			graphics.lineTo(x + TILE_WIDTH, y + TILE_HEIGHT / 2)
-			graphics.lineTo(x + TILE_WIDTH / 2, y + TILE_HEIGHT)
-			graphics.lineTo(x, y + TILE_HEIGHT / 2)
+			graphics.moveTo(x + TILE_WIDTH / 2, y + depthOffset)
+			graphics.lineTo(x + TILE_WIDTH, y + TILE_HEIGHT / 2 + depthOffset)
+			graphics.lineTo(x + TILE_WIDTH / 2, y + TILE_HEIGHT + depthOffset)
+			graphics.lineTo(x, y + TILE_HEIGHT / 2 + depthOffset)
 			graphics.closePath()
 			graphics.fillPath()
+
+			// debug
+			/*graphics.fillStyle(c.side, 1)
+			graphics.fillCircle(
+				x + TILE_WIDTH / 2,
+				y + TILE_HEIGHT + TILE_THICKNESS,
+				2
+			)*/
 
 			// Optional: Subtle outline to separate tiles
 			graphics.lineStyle(1, c.side, 0.5)
