@@ -107,6 +107,7 @@ const _buildings_test1 = [
 ]
 
 import Phaser from 'phaser'
+import { seed, simplex2 } from './noise'
 import { BaseScene } from './BaseScene'
 
 // --- Interfaces ---
@@ -159,6 +160,8 @@ function shuffle<T>(array: Array<T>): Array<T> {
 // -------- CONFIG --------
 const SHOW_BORDER = true
 const RANDOM_DEPTH = true
+const PERLIN_SIZE = 10
+const PERLIN_SCALE = 20
 // ------------------------
 
 export class IsometricColonyScene extends Phaser.Scene {
@@ -195,6 +198,9 @@ export class IsometricColonyScene extends Phaser.Scene {
 	}
 
 	create() {
+		// Seed noise for any procedural generation
+		seed(Math.random() * 10000)
+
 		// 1. Setup Camera interaction (Zoom/Pan)
 		this.setupCamera()
 
@@ -265,7 +271,10 @@ export class IsometricColonyScene extends Phaser.Scene {
 					centerX: x,
 					centerY: y,
 					//! depth introduced too much problems (where if a building is behind a raised tile, it will appear over it), so we will implement it later
-					centerZ: RANDOM_DEPTH ? Math.random() * 10 : 0, // depth
+					//centerZ: RANDOM_DEPTH ? Math.random() * 10 : 0, // depth
+					centerZ: RANDOM_DEPTH
+						? simplex2(q / PERLIN_SIZE, r / PERLIN_SIZE) * PERLIN_SCALE
+						: 0, // depth
 				})
 			}
 		}
