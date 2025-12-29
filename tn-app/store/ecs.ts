@@ -67,6 +67,7 @@ export const useEcsStore = defineStore('ecs', {
 	state: () => ({
 		prefabs: [] as Prefab[],
 		entities: [] as Entity[],
+		_entityCount: 0,
 	}),
 	getters: {},
 	actions: {
@@ -132,7 +133,8 @@ export const useEcsStore = defineStore('ecs', {
 			if (!prefab) return undefined
 
 			const newEntity: Entity = {
-				id: crypto.randomUUID(),
+				//id: crypto.randomUUID(),
+				id: this._entityCount,
 				prefab,
 				components: Object.fromEntries(
 					Object.entries(prefab.components).map((v) => [
@@ -141,6 +143,7 @@ export const useEcsStore = defineStore('ecs', {
 					])
 				),
 			}
+			this._entityCount++
 
 			this.entities.push(newEntity)
 			return newEntity
