@@ -92,6 +92,14 @@ export const useEcsStore = defineStore('ecs', {
 					BuildableC: {},
 				},
 			},
+			{
+				name: 'errorobj',
+				components: {
+					VisualC: { texture: 'aiosjjf' },
+					WorldC: {},
+					BuildableC: {},
+				},
+			},
 		] as Prefab[],
 		entities: [] as Entity[],
 		_entityCount: 0,
@@ -158,6 +166,7 @@ export const useEcsStore = defineStore('ecs', {
 		},
 
 		// prefab management
+		// does NOT push it automatically
 		createEntity(prefabName: string): Entity | undefined {
 			const prefab = this.getPrefabByName(prefabName) as Prefab | undefined
 			if (!prefab) return undefined
@@ -175,7 +184,7 @@ export const useEcsStore = defineStore('ecs', {
 			}
 			this._entityCount++
 
-			this.entities.push(newEntity)
+			//this.entities.push(newEntity)
 			return newEntity
 		},
 	},

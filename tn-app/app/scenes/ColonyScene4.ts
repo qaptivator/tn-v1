@@ -61,7 +61,7 @@ function shuffle<T>(array: Array<T>): Array<T> {
 
 // -------- CONFIG --------
 const SHOW_BORDER = true
-const RANDOM_DEPTH = true
+const RANDOM_DEPTH = false
 const PERLIN_SIZE = 10
 const PERLIN_SCALE = 20
 // ------------------------
@@ -77,6 +77,7 @@ class MainScene extends Phaser.Scene {
 
 	// Interaction
 	private controls!: Phaser.Cameras.Scene2D.Camera
+	hoveredPos!: { q: number; r: number } | null
 	state!: ColonySceneState
 
 	constructor() {
@@ -112,7 +113,7 @@ class MainScene extends Phaser.Scene {
 		//this.generateBuildingData(30)
 		// @ts-ignore
 		//this.buildings = _buildings_test1
-		this.renderBuildings()
+		//this.renderBuildings()
 
 		// 6. Setup Cursor
 		this.cursorGraphics = this.add.graphics({ x: 0, y: 0 })
@@ -369,6 +370,7 @@ class MainScene extends Phaser.Scene {
 			buildingBottomY,
 			visualc ? visualc.texture : 'default'
 		)
+		sprite.name = e.id
 
 		// --- Scaling and Alignment ---
 		const desiredWidth = TILE_WIDTH * 0.8
@@ -406,6 +408,7 @@ class MainScene extends Phaser.Scene {
 		//console.log('handlePointerMove q,r', q, r)
 
 		// Find the tile at the selected Q/R
+		this.hoveredPos = { q, r }
 		const selectedTile = this.tiles.find((tile) => tile.q === q && tile.r === r)
 
 		if (!selectedTile) {
