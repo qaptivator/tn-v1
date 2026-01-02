@@ -67,7 +67,32 @@ export type Entity = {
 
 export const useEcsStore = defineStore('ecs', {
 	state: () => ({
-		prefabs: [] as Prefab[],
+		prefabs: [
+			{
+				name: 'factory',
+				components: {
+					VisualC: { texture: 'factory' },
+					WorldC: {},
+					BuildableC: {},
+				},
+			},
+			{
+				name: 'quarry',
+				components: {
+					VisualC: { texture: 'quarry' },
+					WorldC: {},
+					BuildableC: {},
+				},
+			},
+			{
+				name: 'house',
+				components: {
+					VisualC: { texture: 'house' },
+					WorldC: {},
+					BuildableC: {},
+				},
+			},
+		] as Prefab[],
 		entities: [] as Entity[],
 		_entityCount: 0,
 	}),

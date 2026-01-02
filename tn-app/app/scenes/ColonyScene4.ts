@@ -84,19 +84,11 @@ class MainScene extends Phaser.Scene {
 	}
 
 	preload() {
-		// Using placeholder colors if images fail, but keeping your logic
-		this.load.image(
-			'factory',
-			`${window.location.origin}/textures/colony/factory.png`
-		)
-		this.load.image(
-			'quarry',
-			`${window.location.origin}/textures/colony/quarry.png`
-		)
-		this.load.image(
-			'house',
-			`${window.location.origin}/textures/colony/house.png`
-		)
+		const loc = window.location.origin
+		this.load.image('default', `${loc}/textures/colony/error.png`)
+		this.load.image('factory', `${loc}/textures/colony/factory.png`)
+		this.load.image('quarry', `${loc}/textures/colony/quarry.png`)
+		this.load.image('house', `${loc}/textures/colony/house.png`)
 	}
 
 	create() {
