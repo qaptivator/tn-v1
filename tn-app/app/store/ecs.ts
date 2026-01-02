@@ -6,7 +6,7 @@ type BoundingBox = {
 }
 
 type EmptyC = {}
-interface PrefabComponentRegistry {
+export interface PrefabComponentRegistry {
 	WorldC: EmptyC
 	PhysC: {
 		// mass and volume per 1 item, kind of terranations's version of moles
@@ -22,8 +22,9 @@ interface PrefabComponentRegistry {
 	HealthC: {
 		max: number
 	}
+	BuildableC: EmptyC
 }
-interface EntityComponentRegistry {
+export interface EntityComponentRegistry {
 	WorldC: {
 		x: number
 		y: number
@@ -43,21 +44,22 @@ interface EntityComponentRegistry {
 	HealthC: {
 		current: number
 	}
+	BuildableC: EmptyC
 }
 
-type PrefabComponent =
+export type PrefabComponent =
 	| EntityComponentRegistry[keyof EntityComponentRegistry]
 	| undefined
-type EntityComponent =
+export type EntityComponent =
 	| EntityComponentRegistry[keyof EntityComponentRegistry]
 	| undefined
 
-type Prefab = {
+export type Prefab = {
 	name: string
 	components: Partial<PrefabComponentRegistry>
 }
 
-type Entity = {
+export type Entity = {
 	id: string
 	prefab: Prefab
 	components: Partial<EntityComponentRegistry>
@@ -93,7 +95,10 @@ export const useEcsStore = defineStore('ecs', {
 				)
 			}
 		},
-		getComponent(obj: Entity | Prefab, component: string) {
+		getComponent(
+			obj: Entity | Prefab,
+			component: keyof EntityComponentRegistry | keyof PrefabComponentRegistry
+		) {
 			if ('prefab' in obj) {
 				// Entity
 				return obj.components[component as keyof EntityComponentRegistry]
@@ -134,7 +139,7 @@ export const useEcsStore = defineStore('ecs', {
 
 			const newEntity: Entity = {
 				//id: crypto.randomUUID(),
-				id: this._entityCount,
+				id: String(this._entityCount),
 				prefab,
 				components: Object.fromEntries(
 					Object.entries(prefab.components).map((v) => [
