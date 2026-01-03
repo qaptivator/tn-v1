@@ -11,6 +11,7 @@ type BoundingBox = {
 }
 
 type EmptyC = {}
+type NullC = undefined
 export interface PrefabComponentRegistry {
 	WorldC: EmptyC
 	ItemC: {
