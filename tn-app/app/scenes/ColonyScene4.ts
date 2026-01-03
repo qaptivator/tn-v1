@@ -64,6 +64,8 @@ const SHOW_BORDER = true
 const RANDOM_DEPTH = false
 const PERLIN_SIZE = 10
 const PERLIN_SCALE = 20
+const BUILDING_WIDTH_RATIO = 0.8
+const BUILDING_DEPTH_OFFSET = 14 // manual offset to align bases (Keep this from your original logic)
 // ------------------------
 
 class MainScene extends Phaser.Scene {
@@ -248,82 +250,6 @@ class MainScene extends Phaser.Scene {
 	//#endregion
 
 	//#region BUILDINGS
-	/*private generateBuildingData(count: number) {
-		const types: Array<'factory' | 'quarry' | 'house'> = [
-			'factory',
-			'quarry',
-			'house',
-		]
-
-		// Shuffle tiles to pick random locations
-		//const availableTiles = [...this.tiles].sort(() => 0.5 - Math.random())
-		// bro who made this stupid shuffling algorithm which only selected negative qr values? (spoiler alert: it was gemini ai)
-		const availableTiles = shuffle(this.tiles)
-
-		for (let i = 0; i < count; i++) {
-			if (!availableTiles[i]) break
-
-			const tile = availableTiles[i]
-			if (!tile) continue
-
-			const type = randomElement(types)
-
-			// Note: The sprite property is set to a placeholder (any Phaser.GameObjects.Image)
-			// because the Building interface requires it, but it will be replaced in renderBuildings.
-			this.buildings.push({
-				id: `b-${i}`,
-				q: tile.q,
-				r: tile.r,
-				type,
-				// Temporarily assign a null/dummy sprite until rendering occurs
-				sprite: {} as Phaser.GameObjects.Image,
-			})
-		}
-	}*/
-
-	/*private renderBuildings() {
-		// Iterate over the buildings array that was populated by generateBuildingData
-		this.buildings.forEach((building, i) => {
-			const tile = this.tiles.find(
-				(t) => t.q === building.q && t.r === building.r
-			)
-
-			if (!tile) return // Should not happen if data generation was correct
-
-			// Calculate Y position including the (now-removed or zeroed) depth offset
-			const depthOffset = tile.centerZ ?? 0
-			const buildingBottomY = tile.centerY + TILE_HEIGHT / 2 + depthOffset
-
-			const sprite = this.add.image(
-				tile.centerX + TILE_WIDTH / 2,
-				buildingBottomY,
-				building.type
-			)
-
-			// --- Scaling and Alignment ---
-			const desiredWidth = TILE_WIDTH * 0.8
-			const scale = desiredWidth / sprite.width
-
-			sprite.y += 14 // manual offset to align bases (Keep this from your original logic)
-			sprite.setScale(scale)
-
-			// Origin at bottom-center (1.0)
-			sprite.setOrigin(0.5, 1.0)
-
-			// Basic Depth Sorting (Y-sorting)
-			// Use the final calculated screen Y position for correct sorting
-			//console.log('setting depth for building', building.id, 'at y', sprite.y)
-			sprite.setDepth(sprite.y)
-
-			// Update the building object with the actual sprite reference
-			building.sprite = sprite
-
-			this.buildingsContainer.add(sprite)
-		})
-		// ahh so depth in a game object is actually just metadata, and to for it to actually work you need to sort the container as well
-		this.buildingsContainer.sort('depth')
-	}*/
-
 	syncFromStore() {
 		const currentIds = new Set(this.objectsContainer.list.map((c) => c.name))
 		const storeIds = new Set(this.state.store.entities.map((o) => o.id))
@@ -343,13 +269,8 @@ class MainScene extends Phaser.Scene {
 	}
 
 	addObject(e: Entity) {
-		//! temporary solution over "e.prefab.components.VisualC?.texture"
-		const visualc = this.state.store.getComponent(e.prefab, 'VisualC') as
-			| PrefabComponentRegistry['VisualC']
-			| undefined
-		const worldc = this.state.store.getComponent(e, 'WorldC') as
-			| EntityComponentRegistry['WorldC']
-			| undefined
+		const visualc = this.state.store.getComponent(e.prefab, 'VisualC')
+		const worldc = this.state.store.getComponent(e, 'WorldC', true)
 		if (!worldc) {
 			console.warn('Entity', e.id, 'is missing WorldC component')
 			return
@@ -373,10 +294,9 @@ class MainScene extends Phaser.Scene {
 		sprite.name = e.id
 
 		// --- Scaling and Alignment ---
-		const desiredWidth = TILE_WIDTH * 0.8
+		const desiredWidth = TILE_WIDTH * BUILDING_WIDTH_RATIO
 		const scale = desiredWidth / sprite.width
-
-		sprite.y += 14 // manual offset to align bases (Keep this from your original logic)
+		sprite.y += BUILDING_DEPTH_OFFSET // manual offset to align bases (Keep this from your original logic)
 		sprite.setScale(scale)
 
 		// Origin at bottom-center (1.0)
@@ -479,7 +399,7 @@ class MainScene extends Phaser.Scene {
 		// this edge case of it being either 0 or -0 is so funny
 		const q = (y / (TILE_HEIGHT / 2) + x / (TILE_WIDTH / 2)) / 2
 		const r = (y / (TILE_HEIGHT / 2) - x / (TILE_WIDTH / 2)) / 2
-		return { q: Math.round(q) - 1, r: Math.round(r) === -0 ? 0 : Math.round(r) }
+		return { q: Math.round(q) - 1, r: Math.round(r) || 0 }
 	}
 	//#endregion
 }

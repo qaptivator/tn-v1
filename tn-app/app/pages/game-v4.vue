@@ -26,11 +26,21 @@ const onClick = () => {
 	const pos = game.value?.scene.hoveredPos
 	if (!currentBuilding.value || !pos) return
 
+	// Add validation
+	const existingBuilding = store.entities.find(
+		(e) =>
+			store.getComponent(e, 'WorldC').x === pos.q &&
+			store.getComponent(e, 'WorldC').y === pos.r
+	)
+
+	if (existingBuilding) {
+		console.warn('Position already occupied')
+		return // Or show UI feedback
+	}
+
 	const e = store.entityFromPrefab(currentBuilding.value.name)
 	if (!e) return
-	/*if (!e?.components.WorldC) return
-	e.components.WorldC.x = pos.q
-	e.components.WorldC.y = pos.r*/
+
 	const world = store.getComponent(e, 'WorldC')
 	world.x = pos.q
 	world.y = pos.r
