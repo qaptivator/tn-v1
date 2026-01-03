@@ -39,8 +39,6 @@ const onClick = () => {
 	}
 
 	const e = store.entityFromPrefab(currentBuilding.value.name)
-	if (!e) return
-
 	const world = store.getComponent(e, 'WorldC')
 	world.x = pos.q
 	world.y = pos.r

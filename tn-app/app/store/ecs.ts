@@ -239,9 +239,11 @@ export const useEcsStore = defineStore('ecs', {
 
 		// prefab management
 		// first do entityFromComponent, then createEntity
-		entityFromPrefab(prefabName: string): Entity | undefined {
+		entityFromPrefab(prefabName: string): Entity {
 			const prefab = this.getPrefabByName(prefabName) as Prefab | undefined
-			if (!prefab) return undefined
+			if (!prefab) {
+				throw new Error(`Prefab '${prefabName}' not found`)
+			}
 			return {
 				id: '0',
 				prefab: prefab,
