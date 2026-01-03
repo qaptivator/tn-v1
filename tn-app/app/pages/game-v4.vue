@@ -27,9 +27,13 @@ const onClick = () => {
 	if (!currentBuilding.value || !pos) return
 
 	const e = store.entityFromPrefab(currentBuilding.value.name)
-	if (!e?.components.WorldC) return
+	if (!e) return
+	/*if (!e?.components.WorldC) return
 	e.components.WorldC.x = pos.q
-	e.components.WorldC.y = pos.r
+	e.components.WorldC.y = pos.r*/
+	const world = store.getComponent(e, 'WorldC')
+	world.x = pos.q
+	world.y = pos.r
 	store.createEntity(e)
 	game.value?.scene.syncFromStore()
 }

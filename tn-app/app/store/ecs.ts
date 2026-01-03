@@ -90,6 +90,15 @@ export type EntityComponent =
 	| EntityComponentRegistry[keyof EntityComponentRegistry]
 	| undefined
 
+export type ComponentOf<
+	T extends Entity | Prefab,
+	K extends keyof any
+> = T extends Entity
+	? EntityComponentRegistry[K & keyof EntityComponentRegistry]
+	: T extends Prefab
+	? PrefabComponentRegistry[K & keyof PrefabComponentRegistry]
+	: never
+
 export type Prefab = {
 	name: string
 	components: Partial<PrefabComponentRegistry>
@@ -100,8 +109,6 @@ export type Entity = {
 	prefab: Prefab
 	components: Partial<EntityComponentRegistry>
 }
-
-type EntityInput = Omit<Entity, 'id'>
 
 export const useEcsStore = defineStore('ecs', {
 	state: () => ({
@@ -153,6 +160,32 @@ export const useEcsStore = defineStore('ecs', {
 		},
 
 		// core
+		getComponent<
+			T extends Entity | Prefab,
+			K extends keyof EntityComponentRegistry | keyof PrefabComponentRegistry,
+			O extends boolean | undefined = false
+		>(
+			obj: T | undefined,
+			component: K,
+			optional?: O
+		): O extends true ? ComponentOf<T, K> | undefined : ComponentOf<T, K> {
+			if (!obj) {
+				if (optional) return undefined as any
+				throw new Error('Entity or Prefab is undefined')
+			}
+
+			const c = obj.components[component as keyof typeof obj.components]
+
+			if (c === undefined && !optional) {
+				throw new Error(
+					`'${component}' component is missing on ${
+						'prefab' in obj ? 'Prefab' : 'Entity'
+					}`
+				)
+			}
+
+			return c as ComponentOf<T, K>
+		},
 		hasComponent(obj: Entity | Prefab, component: string): boolean {
 			if ('prefab' in obj) {
 				return (
@@ -166,7 +199,7 @@ export const useEcsStore = defineStore('ecs', {
 				)
 			}
 		},
-		getComponent(
+		/*getComponent(
 			obj: Entity | Prefab,
 			component: keyof EntityComponentRegistry | keyof PrefabComponentRegistry
 		) {
@@ -177,7 +210,7 @@ export const useEcsStore = defineStore('ecs', {
 				// Prefab
 				return obj.components[component as keyof PrefabComponentRegistry]
 			}
-		},
+		},*/
 		initComponent(component: string): EntityComponent | undefined {
 			// initialize default values for components when creating an entity
 			// there isnt such function for prefabs, because they will be defined manually, and shouldn't have a fallback
@@ -206,10 +239,11 @@ export const useEcsStore = defineStore('ecs', {
 
 		// prefab management
 		// first do entityFromComponent, then createEntity
-		entityFromPrefab(prefabName: string): EntityInput | undefined {
+		entityFromPrefab(prefabName: string): Entity | undefined {
 			const prefab = this.getPrefabByName(prefabName) as Prefab | undefined
 			if (!prefab) return undefined
 			return {
+				id: '0',
 				prefab: prefab,
 				components: Object.fromEntries(
 					Object.entries(prefab.components).map((v) => [
@@ -219,12 +253,13 @@ export const useEcsStore = defineStore('ecs', {
 				),
 			}
 		},
-		createEntity(input: EntityInput): Entity {
+		createEntity(e: Entity): Entity {
 			// do we just blindly trust that it has the correct components?
 			const newEntity: Entity = {
 				//id: crypto.randomUUID(),
 				id: String(this._entityCount),
-				...input,
+				prefab: e.prefab,
+				components: e.components,
 			}
 			this._entityCount++
 			this.entities.push(newEntity)
