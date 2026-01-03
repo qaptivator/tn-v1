@@ -1,17 +1,13 @@
 import { defineStore } from 'pinia'
 
-const createRegistryKeys = <T>() => {
-	return <U extends (keyof T)[]>(
-		...args: U & (Exclude<keyof T, U[number]> extends never ? U : never)
-	) => args
-}
 type BoundingBox = {
 	leftTop: { x: number; y: number }
 	rightBottom: { x: number; y: number }
 }
-
 type EmptyC = {}
 type NullC = undefined
+
+// #region Components Config
 export interface PrefabComponentRegistry {
 	WorldC: EmptyC
 	ItemC: {
@@ -72,7 +68,13 @@ const COMPONENT_DEFAULTS: {
 	},
 	BuildableC: {},
 }
-/*export const COMPONENT_NAMES = createRegistryKeys<PrefabComponentRegistry>()(
+// #endregion
+/*const createRegistryKeys = <T>() => {
+	return <U extends (keyof T)[]>(
+		...args: U & (Exclude<keyof T, U[number]> extends never ? U : never)
+	) => args
+}
+export const COMPONENT_NAMES = createRegistryKeys<PrefabComponentRegistry>()(
 	'WorldC',
 	'ItemC',
 	'VisualC',
@@ -98,6 +100,8 @@ export type Entity = {
 	prefab: Prefab
 	components: Partial<EntityComponentRegistry>
 }
+
+type EntityInput = Omit<Entity, 'id'>
 
 export const useEcsStore = defineStore('ecs', {
 	state: () => ({
@@ -201,15 +205,12 @@ export const useEcsStore = defineStore('ecs', {
 		},
 
 		// prefab management
-		// does NOT push it automatically
-		createEntity(prefabName: string): Entity | undefined {
+		// first do entityFromComponent, then createEntity
+		entityFromPrefab(prefabName: string): EntityInput | undefined {
 			const prefab = this.getPrefabByName(prefabName) as Prefab | undefined
 			if (!prefab) return undefined
-
-			const newEntity: Entity = {
-				//id: crypto.randomUUID(),
-				id: String(this._entityCount),
-				prefab,
+			return {
+				prefab: prefab,
 				components: Object.fromEntries(
 					Object.entries(prefab.components).map((v) => [
 						v[0],
@@ -217,9 +218,16 @@ export const useEcsStore = defineStore('ecs', {
 					])
 				),
 			}
+		},
+		createEntity(input: EntityInput): Entity {
+			// do we just blindly trust that it has the correct components?
+			const newEntity: Entity = {
+				//id: crypto.randomUUID(),
+				id: String(this._entityCount),
+				...input,
+			}
 			this._entityCount++
-
-			//this.entities.push(newEntity)
+			this.entities.push(newEntity)
 			return newEntity
 		},
 	},

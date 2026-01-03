@@ -26,13 +26,11 @@ const onClick = () => {
 	const pos = game.value?.scene.hoveredPos
 	if (!currentBuilding.value || !pos) return
 
-	const e = store.createEntity(currentBuilding.value.name)
+	const e = store.entityFromPrefab(currentBuilding.value.name)
 	if (!e?.components.WorldC) return
 	e.components.WorldC.x = pos.q
 	e.components.WorldC.y = pos.r
-
-	//! DO NOT do this
-	store.entities.push(e)
+	store.createEntity(e)
 	game.value?.scene.syncFromStore()
 }
 
