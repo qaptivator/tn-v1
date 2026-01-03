@@ -1,5 +1,10 @@
 import { defineStore } from 'pinia'
 
+const createRegistryKeys = <T>() => {
+	return <U extends (keyof T)[]>(
+		...args: U & (Exclude<keyof T, U[number]> extends never ? U : never)
+	) => args
+}
 type BoundingBox = {
 	leftTop: { x: number; y: number }
 	rightBottom: { x: number; y: number }
@@ -8,7 +13,7 @@ type BoundingBox = {
 type EmptyC = {}
 export interface PrefabComponentRegistry {
 	WorldC: EmptyC
-	PhysC: {
+	ItemC: {
 		// mass and volume per 1 item, kind of terranations's version of moles
 		// prefab.density = prefab.mass / prefab.volume
 		mass: number
@@ -31,7 +36,7 @@ export interface EntityComponentRegistry {
 		// colony: string
 		// rotation: number
 	}
-	PhysC: {
+	ItemC: {
 		// entity.mass = prefab.mass * entity.amount
 		// entity.volume = prefab.volume * entity.amount
 		amount: number
@@ -46,6 +51,34 @@ export interface EntityComponentRegistry {
 	}
 	BuildableC: EmptyC
 }
+const COMPONENT_DEFAULTS: {
+	[key: string]: EntityComponent | EmptyC
+} = {
+	WorldC: {
+		x: 0,
+		y: 0,
+	},
+	ItemC: {
+		amount: 1,
+	},
+	VisualC: {},
+	ControlC: {
+		controller: '',
+		owner: '',
+	},
+	HealthC: {
+		current: 100,
+	},
+	BuildableC: {},
+}
+/*export const COMPONENT_NAMES = createRegistryKeys<PrefabComponentRegistry>()(
+	'WorldC',
+	'ItemC',
+	'VisualC',
+	'ControlC',
+	'HealthC',
+	'BuildableC'
+)*/
 
 export type PrefabComponent =
 	| EntityComponentRegistry[keyof EntityComponentRegistry]
@@ -143,10 +176,10 @@ export const useEcsStore = defineStore('ecs', {
 		initComponent(component: string): EntityComponent | undefined {
 			// initialize default values for components when creating an entity
 			// there isnt such function for prefabs, because they will be defined manually, and shouldn't have a fallback
-			switch (component) {
+			/*switch (component) {
 				case 'WorldC':
 					return { x: 0, y: 0 }
-				case 'PhysC':
+				case 'ItemC':
 					return { amount: 1 }
 				case 'VisualC':
 					return {}
@@ -156,7 +189,8 @@ export const useEcsStore = defineStore('ecs', {
 					return { current: 100 }
 				default:
 					return undefined
-			}
+			}*/
+			return (COMPONENT_DEFAULTS as any)[component]
 		},
 		getPrefabsWithComponent(component: string): Prefab[] {
 			return this.prefabs.filter((p) => this.hasComponent(p, component))
