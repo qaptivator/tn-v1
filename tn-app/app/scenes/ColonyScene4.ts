@@ -269,12 +269,12 @@ class MainScene extends Phaser.Scene {
 	}
 
 	addObject(e: Entity) {
-		const visualc = this.state.store.getComponent(e.prefab, 'VisualC')
-		const worldc = this.state.store.getComponent(e, 'WorldC', true)
-		if (!worldc) {
+		const visualc = this.state.store.tryGetComponent(e.prefab, 'VisualC')
+		const worldc = this.state.store.getComponent(e, 'WorldC')
+		/*if (!worldc) {
 			console.warn('Entity', e.id, 'is missing WorldC component')
 			return
-		}
+		}*/
 
 		const tile = this.tiles.find((t) => t.q === worldc.x && t.r === worldc.y)
 		if (!tile) {

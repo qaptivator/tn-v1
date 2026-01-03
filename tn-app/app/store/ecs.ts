@@ -160,7 +160,7 @@ export const useEcsStore = defineStore('ecs', {
 		},
 
 		// core
-		getComponent<
+		/*getComponent<
 			T extends Entity | Prefab,
 			K extends keyof EntityComponentRegistry | keyof PrefabComponentRegistry,
 			O extends boolean | undefined = false
@@ -185,6 +185,26 @@ export const useEcsStore = defineStore('ecs', {
 			}
 
 			return c as ComponentOf<T, K>
+		},*/
+		getComponent<
+			T extends Entity | Prefab,
+			K extends keyof EntityComponentRegistry | keyof PrefabComponentRegistry
+		>(obj: T | undefined, component: K): ComponentOf<T, K> {
+			if (!obj) throw new Error('Entity or Prefab is undefined')
+			const c = obj.components[component as keyof typeof obj.components]
+			if (c === undefined) {
+				throw new Error(`'${component}' component is missing`)
+			}
+			return c as ComponentOf<T, K>
+		},
+		tryGetComponent<
+			T extends Entity | Prefab,
+			K extends keyof EntityComponentRegistry | keyof PrefabComponentRegistry
+		>(obj: T | undefined, component: K): ComponentOf<T, K> | undefined {
+			if (!obj) return undefined
+			return obj.components[component as keyof typeof obj.components] as
+				| ComponentOf<T, K>
+				| undefined
 		},
 		hasComponent(obj: Entity | Prefab, component: string): boolean {
 			if ('prefab' in obj) {

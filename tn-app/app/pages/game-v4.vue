@@ -29,8 +29,8 @@ const onClick = () => {
 	// Add validation
 	const existingBuilding = store.entities.find(
 		(e) =>
-			store.getComponent(e, 'WorldC', true)?.x === pos.q &&
-			store.getComponent(e, 'WorldC', true)?.y === pos.r
+			store.tryGetComponent(e, 'WorldC')?.x === pos.q &&
+			store.tryGetComponent(e, 'WorldC')?.y === pos.r
 	)
 
 	if (existingBuilding) {
