@@ -1,6 +1,9 @@
 <template>
 	<div>
-		<div id="game-container"></div>
+		<div
+			id="game-container"
+			@click="onClick"
+		></div>
 		<div class="fixed bottom-0 left-0 h-64 w-96 bg-black/50 flex p-4 gap-4">
 			<img
 				v-for="building in buildings"
@@ -22,6 +25,7 @@ const buildings = ref<Prefab[]>([])
 const currentBuilding = ref<Prefab | undefined>(undefined)
 const store = useEcsStore()
 
+// TODO: move this to ColonyScene instead, this shouldnt be in the ui layer.
 const onClick = () => {
 	const pos = game.value?.scene.hoveredPos
 	if (!currentBuilding.value || !pos) return
@@ -56,15 +60,15 @@ onMounted(() => {
 	game.value = new ColonyScene('game-container', {
 		store,
 	})
-	window.addEventListener('resize', game.value.resize)
-	window.addEventListener('click', onClick)
+	//window.addEventListener('resize', game.value.resize)
+	//window.addEventListener('click', onClick)
 })
 
 onUnmounted(() => {
 	if (game.value) {
 		game.value.destroy()
-		window.removeEventListener('resize', game.value.resize)
-		window.removeEventListener('click', onClick)
+		//window.removeEventListener('resize', game.value.resize)
+		//window.removeEventListener('click', onClick)
 	}
 })
 </script>
