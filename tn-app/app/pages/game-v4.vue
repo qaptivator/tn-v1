@@ -13,6 +13,9 @@
 				:class="currentBuilding?.name === building.name ? 'ring-2' : ''"
 			/>
 		</div>
+		<!--<div class="fixed top-0 left-0">
+			<EcsEditor />
+		</div>-->
 	</div>
 </template>
 <script setup lang="ts">
@@ -31,10 +34,6 @@ const onClick = () => {
 	if (!currentBuilding.value || !pos) return
 
 	// Add validation
-	for (const e of store.entities) {
-		const world = store.tryGetComponent(e, 'WorldC')
-		console.log('world test', world, pos)
-	}
 	const existingBuilding = store.entities.find(
 		(e) =>
 			store.tryGetComponent(e, 'WorldC')?.x === pos.q &&
