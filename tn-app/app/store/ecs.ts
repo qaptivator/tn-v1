@@ -268,10 +268,7 @@ export const useEcsStore = defineStore('ecs', {
 				id: '0',
 				prefab: prefab,
 				components: Object.fromEntries(
-					Object.entries(prefab.components).map((v) => [
-						v[0],
-						this.initComponent(v[0]),
-					])
+					Object.keys(prefab.components).map((v) => [v, this.initComponent(v)])
 				),
 			}
 		},
