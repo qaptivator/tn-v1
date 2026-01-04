@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import _ from 'lodash'
 
 type BoundingBox = {
 	leftTop: { x: number; y: number }
@@ -248,7 +249,7 @@ export const useEcsStore = defineStore('ecs', {
 				default:
 					return undefined
 			}*/
-			return (COMPONENT_DEFAULTS as any)[component]
+			return _.cloneDeep(COMPONENT_DEFAULTS as any)[component]
 		},
 		getPrefabsWithComponent(component: string): Prefab[] {
 			return this.prefabs.filter((p) => this.hasComponent(p, component))
@@ -264,12 +265,19 @@ export const useEcsStore = defineStore('ecs', {
 			if (!prefab) {
 				throw new Error(`Prefab '${prefabName}' not found`)
 			}
+			let components: Partial<EntityComponentRegistry> = {}
+			for (const compName of Object.keys(prefab.components)) {
+				const comp = this.initComponent(compName)
+				// @ts-ignore
+				components[compName] = comp
+			}
 			return {
 				id: '0',
 				prefab: prefab,
-				components: Object.fromEntries(
+				components: components as Partial<EntityComponentRegistry>,
+				/*components: Object.fromEntries(
 					Object.keys(prefab.components).map((v) => [v, this.initComponent(v)])
-				),
+				),*/
 			}
 		},
 		createEntity(e: Entity): Entity {
