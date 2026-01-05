@@ -65,9 +65,11 @@ export type EntityComponent =
 	| undefined
 
 export type ComponentOf<
-	T extends Entity | Prefab,
+	T extends Entity | Prefab | EntityDraft,
 	K extends keyof any
 > = T extends Entity
+	? EntityComponentRegistry[K & keyof EntityComponentRegistry]
+	: T extends EntityDraft
 	? EntityComponentRegistry[K & keyof EntityComponentRegistry]
 	: T extends Prefab
 	? PrefabComponentRegistry[K & keyof PrefabComponentRegistry]
@@ -136,17 +138,17 @@ export const useEcsStore = defineStore('ecs', {
 
 		// ===== COMPONENT ACCESS (STRICT) =====
 		getComponent<
-			T extends Entity | Prefab,
+			T extends Entity | Prefab | EntityDraft,
 			K extends keyof EntityComponentRegistry | keyof PrefabComponentRegistry
 		>(obj: T | undefined, component: K): ComponentOf<T, K> {
-			if (!obj) throw new Error('Entity or Prefab is undefined')
+			if (!obj) throw new Error('Entity, Draft, or Prefab is undefined')
 
 			const c = obj.components[component as keyof typeof obj.components]
 
 			if (c === undefined) {
 				throw new Error(
 					`'${String(component)}' component is missing on ${
-						'prefab' in obj ? 'Prefab' : 'Entity'
+						'prefab' in obj ? 'Prefab' : 'Entity/Draft'
 					}`
 				)
 			}
@@ -156,7 +158,7 @@ export const useEcsStore = defineStore('ecs', {
 
 		// ===== COMPONENT ACCESS (OPTIONAL) =====
 		tryGetComponent<
-			T extends Entity | Prefab,
+			T extends Entity | Prefab | EntityDraft,
 			K extends keyof EntityComponentRegistry | keyof PrefabComponentRegistry
 		>(obj: T | undefined, component: K): ComponentOf<T, K> | undefined {
 			if (!obj) return undefined
@@ -166,7 +168,10 @@ export const useEcsStore = defineStore('ecs', {
 		},
 
 		// ===== COMPONENT CHECKS =====
-		hasComponent(obj: Entity | Prefab | undefined, component: string): boolean {
+		hasComponent(
+			obj: Entity | Prefab | EntityDraft | undefined,
+			component: string
+		): boolean {
 			if (!obj) return false
 
 			return (

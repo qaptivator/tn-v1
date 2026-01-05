@@ -46,7 +46,8 @@ class MainScene extends Phaser.Scene {
 	private cursorGraphics!: Phaser.GameObjects.Graphics
 	private buildingPreviewGraphics!: Phaser.GameObjects.Graphics
 
-	hoveredPos!: { q: number; r: number } | null
+	hoveredPos!: { q: number; r: number } | undefined
+	isPointerOverUI!: boolean
 	state!: ColonySceneState
 
 	constructor() {
@@ -77,6 +78,17 @@ class MainScene extends Phaser.Scene {
 		this.input.on('pointermove', this.handlePointerMove, this)
 		this.input.on('pointerdown', this.handlePointerDown, this)
 
+		this.isPointerOverUI = false
+		if (this.game.canvas.parentNode) {
+			this.game.canvas.parentNode.addEventListener('pointerenter', () => {
+				this.isPointerOverUI = false
+			})
+			this.game.canvas.parentNode.addEventListener('pointerleave', () => {
+				this.isPointerOverUI = true
+				this.cursorGraphics.clear()
+			})
+		}
+
 		// Listen to game store events
 		this.state.gameStore.on('building:start', (draft: any) => {
 			this.showBuildingPreview(draft)
@@ -84,8 +96,8 @@ class MainScene extends Phaser.Scene {
 
 		this.state.gameStore.on('building:preview', () => {
 			this.updateBuildingPreview(
-				this.state.gameStore.game.buildingDraft,
-				this.state.gameStore.game.draftPosition
+				this.state.gameStore.buildingDraft,
+				this.state.gameStore.draftPosition
 			)
 		})
 
@@ -247,12 +259,11 @@ class MainScene extends Phaser.Scene {
 			return
 		}
 
-		// Find position in world space
 		const screenPos = this.qrToScreen(worldc.x, worldc.y)
 
 		const sprite = this.add.image(
 			screenPos.x + TILE_WIDTH / 2,
-			screenPos.y + TILE_HEIGHT / 2,
+			screenPos.y + TILE_HEIGHT / 2 + 14,
 			visualc ? visualc.texture : 'default'
 		)
 		sprite.name = e.id
@@ -260,7 +271,6 @@ class MainScene extends Phaser.Scene {
 		const desiredWidth = TILE_WIDTH * 0.8
 		const scale = desiredWidth / sprite.width
 
-		sprite.y += 14
 		sprite.setScale(scale)
 		sprite.setOrigin(0.5, 1.0)
 		sprite.setDepth(sprite.y)
@@ -268,6 +278,9 @@ class MainScene extends Phaser.Scene {
 
 		// Click to select
 		sprite.on('pointerdown', () => {
+			// Clear previous highlight
+			this.clearHighlight()
+			// Select new entity
 			this.state.gameStore.selectEntity(e.id)
 		})
 
@@ -280,6 +293,17 @@ class MainScene extends Phaser.Scene {
 
 		this.state.gameStore.updateHoveredPos({ q, r })
 		this.hoveredPos = { q, r }
+
+		// Update building preview if placing
+		if (this.state.gameStore.isPlacingBuilding) {
+			this.updateBuildingPreview(this.state.gameStore.buildingDraft, { q, r })
+		}
+
+		// Check if pointer is over UI
+		if (this.isPointerOverUI) {
+			this.cursorGraphics.clear()
+			return
+		}
 
 		// Update cursor
 		const screenPos = this.qrToScreen(q, r)
@@ -310,10 +334,44 @@ class MainScene extends Phaser.Scene {
 	}
 
 	private showBuildingPreview(draft: any) {
-		// Placeholder for preview graphics
+		if (!draft) return
+		// Preview will be updated via updateBuildingPreview
+		this.updateBuildingPreview(draft, this.state.gameStore.draftPosition)
 	}
 
 	private updateBuildingPreview(draft: any, pos: any) {
+		if (!draft || !pos) {
+			this.buildingPreviewGraphics.clear()
+			return
+		}
+
+		const screenPos = this.qrToScreen(pos.q, pos.r)
+		const x = screenPos.x + TILE_WIDTH / 2
+		const y = screenPos.y + TILE_HEIGHT / 2
+
+		this.buildingPreviewGraphics.clear()
+
+		// Draw semi-transparent preview square
+		this.buildingPreviewGraphics.fillStyle(0x00ff00, 0.3)
+		this.buildingPreviewGraphics.fillRect(
+			x - TILE_WIDTH / 4,
+			y - TILE_HEIGHT / 2,
+			TILE_WIDTH / 2,
+			TILE_HEIGHT
+		)
+
+		this.buildingPreviewGraphics.lineStyle(2, 0x00ff00, 0.8)
+		this.buildingPreviewGraphics.strokeRect(
+			x - TILE_WIDTH / 4,
+			y - TILE_HEIGHT / 2,
+			TILE_WIDTH / 2,
+			TILE_HEIGHT
+		)
+
+		this.buildingPreviewGraphics.setDepth(10000) // Ensure it's on top
+	}
+
+	/*private updateBuildingPreview(draft: any, pos: any) {
 		if (!draft || !pos) return
 
 		const screenPos = this.qrToScreen(pos.q, pos.r)
@@ -325,7 +383,7 @@ class MainScene extends Phaser.Scene {
 		this.buildingPreviewGraphics.fillCircle(x, y, 20)
 		this.buildingPreviewGraphics.lineStyle(2, 0x00ff00, 0.8)
 		this.buildingPreviewGraphics.strokeCircle(x, y, 20)
-	}
+	}*/
 
 	private hideBuildingPreview() {
 		this.buildingPreviewGraphics.clear()
@@ -375,12 +433,22 @@ export class ColonyScene extends BaseScene {
 			height: window.innerHeight,
 			backgroundColor: '#1a1a1a',
 			scene: this.scene,
-			pixelArt: true,
+			pixelArt: false,
 		}
 		this.game = new Phaser.Game(config)
 	}
 
 	destroy() {
+		if (this.game.canvas.parentNode) {
+			this.game.canvas.parentNode.removeEventListener(
+				'pointerenter',
+				null as any
+			)
+			this.game.canvas.parentNode.removeEventListener(
+				'pointerleave',
+				null as any
+			)
+		}
 		this.game.destroy(true)
 	}
 

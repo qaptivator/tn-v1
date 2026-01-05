@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
-import { useEcsStore } from './ecs'
-import type { Entity, EntityDraft } from '~/store/ecs'
+import { useEcsStore, type EntityDraft, type Entity } from '~/store/ecs'
 
 export const useGameStore = defineStore('game', {
 	state: () => ({
@@ -41,6 +40,9 @@ export const useGameStore = defineStore('game', {
 		updatePlacementPosition(pos: { q: number; r: number }) {
 			if (!this.buildingDraft) return
 			this.draftPosition = pos
+			const world = useEcsStore().getComponent(this.buildingDraft, 'WorldC')
+			world.x = pos.q
+			world.y = pos.r
 			this.emit('building:preview', pos)
 		},
 
@@ -48,11 +50,22 @@ export const useGameStore = defineStore('game', {
 			if (!this.buildingDraft) return
 			const ecs = useEcsStore()
 
+			// Check if there's already a building at this position
+			const existingBuilding = ecs.entities.find((e) => {
+				const world = ecs.tryGetComponent(e, 'WorldC')
+				const draftWorld = ecs.getComponent(this.buildingDraft, 'WorldC')
+				return world && world.x === draftWorld.x && world.y === draftWorld.y
+			})
+
+			if (existingBuilding) {
+				this.emit('building:failed', new Error('Position already occupied'))
+				return
+			}
+
 			try {
-				const entity = await ecs.submitEntity(this.buildingDraft)
-				this.emit('building:placed', entity)
+				await ecs.submitEntity(this.buildingDraft)
+				this.emit('building:placed', this.buildingDraft)
 				this.clearPlacement()
-				return entity
 			} catch (error) {
 				this.emit('building:failed', error)
 				throw error
@@ -72,6 +85,12 @@ export const useGameStore = defineStore('game', {
 
 		// Selection
 		selectEntity(entityId: string) {
+			// If clicking the same entity, deselect it
+			if (this.selectedEntityId === entityId) {
+				this.deselectEntity()
+				return
+			}
+
 			this.selectedEntityId = entityId
 			this.emit('entity:selected', entityId)
 		},
@@ -86,22 +105,7 @@ export const useGameStore = defineStore('game', {
 			const ecs = useEcsStore()
 
 			try {
-				// Call GraphQL to delete
-				await $fetch('/graphql', {
-					method: 'POST',
-					body: {
-						query: `mutation DeleteEntity($id: String!) {
-                            deleteEntity(id: $id) { id }
-                        }`,
-						variables: { id: this.selectedEntityId },
-					},
-				})
-
-				// Remove from local store
-				ecs.entities = ecs.entities.filter(
-					(e) => e.id !== this.selectedEntityId
-				)
-
+				await ecs.deleteEntityFromServer(this.selectedEntityId)
 				this.emit('entity:deleted', this.selectedEntityId)
 				this.deselectEntity()
 			} catch (error) {
