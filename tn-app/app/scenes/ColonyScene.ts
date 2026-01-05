@@ -1,4 +1,3 @@
-// app/scenes/ColonyScene4.ts
 import Phaser from 'phaser'
 import { seed, simplex2 } from './noise'
 import { BaseScene } from './BaseScene'
@@ -26,6 +25,9 @@ const TILE_WIDTH = 64
 const TILE_HEIGHT = 32
 const TILE_THICKNESS = 12
 const CURSOR_TWEEN_DURATION = 50
+const CURSOR_TWEEN_EASE = 'Linear'
+// https://rexrainbow.github.io/phaser3-rex-notes/docs/site/ease-function/
+// https://easings.net/
 
 const COLORS = {
 	grass: { top: 0x7ebd73, side: 0x5a8f52 },
@@ -40,12 +42,15 @@ const RANDOM_DEPTH = false
 const PERLIN_SIZE = 10
 const PERLIN_SCALE = 20
 
+//! FIXME: this error appears once hmr reloads the page, "TypeError: can't access property "add", this.displayList is null". it disappears after a full reload.
+
 class MainScene extends Phaser.Scene {
 	private tiles: IsometricTile[] = []
 	private terrainLayer!: Phaser.GameObjects.Container
 	private objectsContainer!: Phaser.GameObjects.Container
 	private cursorGraphics!: Phaser.GameObjects.Graphics
-	private buildingPreviewGraphics!: Phaser.GameObjects.Graphics
+	//private buildingPreviewGraphics!: Phaser.GameObjects.Graphics
+	private buildingPreviewSprite: Phaser.GameObjects.Image | null = null
 
 	hoveredPos!: { q: number; r: number } | undefined
 	isPointerOverUI!: boolean
@@ -73,7 +78,8 @@ class MainScene extends Phaser.Scene {
 		this.generateTileGrid(24, 24)
 		this.renderTerrain()
 		this.cursorGraphics = this.add.graphics({ x: 0, y: 0 })
-		this.buildingPreviewGraphics = this.add.graphics({ x: 0, y: 0 })
+		//this.buildingPreviewGraphics = this.add.graphics({ x: 0, y: 0 })
+		this.buildingPreviewSprite = null
 
 		// Input
 		this.input.on('pointermove', this.handlePointerMove, this)
@@ -284,13 +290,14 @@ class MainScene extends Phaser.Scene {
 		sprite.setScale(0) // Start at scale 0 (invisible)
 		sprite.setOrigin(0.5, 1.0)
 		sprite.setDepth(sprite.y)
-		sprite.setInteractive()
+		//sprite.setInteractive()
 
 		// Click to select
-		sprite.on('pointerdown', () => {
-			this.clearHighlight()
-			this.state.gameStore.selectEntity(e.id)
-		})
+		// update: this is bad because you wont be able to select objects behind tall ones
+		//sprite.on('pointerdown', () => {
+		//	this.clearHighlight()
+		//	this.state.gameStore.selectEntity(e.id)
+		//})
 
 		this.objectsContainer.add(sprite)
 
@@ -332,7 +339,7 @@ class MainScene extends Phaser.Scene {
 			x: targetX,
 			y: targetY,
 			duration: CURSOR_TWEEN_DURATION,
-			ease: 'Linear',
+			ease: CURSOR_TWEEN_EASE,
 			overwrite: 'auto', // Cancel previous tween if still running
 		})
 
@@ -383,15 +390,34 @@ class MainScene extends Phaser.Scene {
 	}*/
 
 	private handlePointerDown(pointer: Phaser.Input.Pointer) {
-		if (
-			!this.state.gameStore.isPlacingBuilding ||
-			!this.state.gameStore.hoveredPos
-		)
-			return
+		if (!this.state.gameStore.hoveredPos || pointer.button !== 0) return
 
-		const pos = this.state.gameStore.hoveredPos
-		this.state.gameStore.updatePlacementPosition(pos)
-		this.state.gameStore.confirmPlacement()
+		if (this.state.gameStore.isPlacingBuilding) {
+			const pos = this.state.gameStore.hoveredPos
+			this.state.gameStore.updatePlacementPosition(pos)
+			this.state.gameStore.confirmPlacement()
+		} else {
+			// Check if clicking on an entity to select
+			const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
+			const { q, r } = this.screenToQr(worldPoint.x, worldPoint.y)
+
+			const clickedEntity = this.state.ecsStore.entities.find((e: Entity) => {
+				const worldc = this.state.ecsStore.tryGetComponent(e, 'WorldC')
+				return worldc && worldc.x === q && worldc.y === r
+			})
+
+			this.clearHighlight()
+			if (clickedEntity) {
+				this.state.gameStore.selectEntity(clickedEntity.id)
+			} else {
+				this.state.gameStore.deselectEntity()
+			}
+
+			//else {
+			//    this.clearHighlight()
+			//this.state.gameStore.deselectEntity()
+			//}
+		}
 	}
 
 	private showBuildingPreview(draft: any) {
@@ -401,6 +427,49 @@ class MainScene extends Phaser.Scene {
 	}
 
 	private updateBuildingPreview(draft: any, pos: any) {
+		if (!draft || !pos) {
+			if (this.buildingPreviewSprite) {
+				this.buildingPreviewSprite.destroy()
+				this.buildingPreviewSprite = null
+			}
+			return
+		}
+
+		const visualc = this.state.ecsStore.tryGetComponent(draft.prefab, 'VisualC')
+		const screenPos = this.qrToScreen(pos.q, pos.r)
+		const x = screenPos.x + TILE_WIDTH / 2
+		const y = screenPos.y + TILE_HEIGHT / 2 + 14
+
+		// Create preview sprite if it doesn't exist
+		if (!this.buildingPreviewSprite) {
+			this.buildingPreviewSprite = this.add.image(
+				x,
+				y,
+				visualc ? visualc.texture : 'default'
+			)
+
+			const desiredWidth = TILE_WIDTH * 0.8
+			const scale = desiredWidth / this.buildingPreviewSprite.width
+
+			this.buildingPreviewSprite.setScale(scale)
+			this.buildingPreviewSprite.setOrigin(0.5, 1.0)
+			this.buildingPreviewSprite.setAlpha(0.5) // Semi-transparent
+			this.buildingPreviewSprite.setTint(0x00ff00) // Green tint
+			this.buildingPreviewSprite.setDepth(9999)
+		}
+
+		// Animate preview to new position
+		this.tweens.add({
+			targets: this.buildingPreviewSprite,
+			x: x,
+			y: y,
+			duration: CURSOR_TWEEN_DURATION,
+			ease: CURSOR_TWEEN_EASE,
+			overwrite: 'auto',
+		})
+	}
+
+	/*private updateBuildingPreview(draft: any, pos: any) {
 		if (!draft || !pos) {
 			this.buildingPreviewGraphics.clear()
 			return
@@ -430,7 +499,7 @@ class MainScene extends Phaser.Scene {
 		)
 
 		this.buildingPreviewGraphics.setDepth(10000) // Ensure it's on top
-	}
+	}*/
 
 	/*private updateBuildingPreview(draft: any, pos: any) {
 		if (!draft || !pos) return
@@ -447,13 +516,34 @@ class MainScene extends Phaser.Scene {
 	}*/
 
 	private hideBuildingPreview() {
-		this.buildingPreviewGraphics.clear()
+		//this.buildingPreviewGraphics.clear()
+		if (this.buildingPreviewSprite) {
+			this.tweens.add({
+				targets: this.buildingPreviewSprite,
+				alpha: 0,
+				duration: 200,
+				ease: 'Linear',
+				onComplete: () => {
+					if (this.buildingPreviewSprite) {
+						this.buildingPreviewSprite.destroy()
+						this.buildingPreviewSprite = null
+					}
+				},
+			})
+		}
 	}
 
 	private highlightEntity(entityId: string) {
 		const sprite = this.objectsContainer.list.find((c) => c.name === entityId)
 		if (sprite && sprite instanceof Phaser.GameObjects.Image) {
-			sprite.setTint(COLORS.selected)
+			//sprite.setTint(COLORS.selected)
+			this.tweens.killTweensOf(sprite)
+			this.tweens.add({
+				targets: sprite,
+				tint: COLORS.selected,
+				duration: 50,
+				ease: 'Linear',
+			})
 		}
 	}
 
@@ -461,7 +551,14 @@ class MainScene extends Phaser.Scene {
 		//this.objectsContainer.list.forEach((c) => c.clearTint())
 		for (const c of this.objectsContainer.list) {
 			if (c instanceof Phaser.GameObjects.Image) {
-				c.clearTint()
+				this.tweens.killTweensOf(c)
+				this.tweens.add({
+					targets: c,
+					tint: 0xffffff,
+					duration: 50,
+					ease: 'Linear',
+				})
+				//c.clearTint()
 			}
 		}
 	}
