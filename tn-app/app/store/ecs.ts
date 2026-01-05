@@ -12,8 +12,6 @@ type NullC = undefined
 export interface PrefabComponentRegistry {
 	WorldC: EmptyC
 	ItemC: {
-		// mass and volume per 1 item, kind of terranations's version of moles
-		// prefab.density = prefab.mass / prefab.volume
 		mass: number
 		volume: number
 		collisionBox: BoundingBox
@@ -27,16 +25,13 @@ export interface PrefabComponentRegistry {
 	}
 	BuildableC: EmptyC
 }
+
 export interface EntityComponentRegistry {
 	WorldC: {
 		x: number
 		y: number
-		// colony: string
-		// rotation: number
 	}
 	ItemC: {
-		// entity.mass = prefab.mass * entity.amount
-		// entity.volume = prefab.volume * entity.amount
 		amount: number
 	}
 	VisualC: EmptyC
@@ -49,44 +44,21 @@ export interface EntityComponentRegistry {
 	}
 	BuildableC: EmptyC
 }
-const COMPONENT_DEFAULTS: {
-	[key: string]: EntityComponent | EmptyC
-} = {
-	WorldC: {
-		x: 0,
-		y: 0,
-	},
-	ItemC: {
-		amount: 1,
-	},
-	VisualC: {},
-	ControlC: {
-		controller: '',
-		owner: '',
-	},
-	HealthC: {
-		current: 100,
-	},
-	BuildableC: {},
+
+const COMPONENT_DEFAULTS = {
+	WorldC: () => ({ x: 0, y: 0 }),
+	ItemC: () => ({ amount: 1 }),
+	VisualC: () => ({}),
+	ControlC: () => ({ controller: '', owner: '' }),
+	HealthC: () => ({ current: 100 }),
+	BuildableC: () => ({}),
 }
 // #endregion
-/*const createRegistryKeys = <T>() => {
-	return <U extends (keyof T)[]>(
-		...args: U & (Exclude<keyof T, U[number]> extends never ? U : never)
-	) => args
-}
-export const COMPONENT_NAMES = createRegistryKeys<PrefabComponentRegistry>()(
-	'WorldC',
-	'ItemC',
-	'VisualC',
-	'ControlC',
-	'HealthC',
-	'BuildableC'
-)*/
 
 export type PrefabComponent =
 	| EntityComponentRegistry[keyof EntityComponentRegistry]
 	| undefined
+
 export type EntityComponent =
 	| EntityComponentRegistry[keyof EntityComponentRegistry]
 	| undefined
@@ -105,6 +77,8 @@ export type Prefab = {
 	components: Partial<PrefabComponentRegistry>
 }
 
+export type EntityDraft = Omit<Entity, 'id'> & { id?: string }
+
 export type Entity = {
 	id: string
 	prefab: Prefab
@@ -118,7 +92,6 @@ export const useEcsStore = defineStore('ecs', {
 				name: 'factory',
 				components: {
 					VisualC: { texture: 'factory' },
-					WorldC: {},
 					BuildableC: {},
 				},
 			},
@@ -126,7 +99,6 @@ export const useEcsStore = defineStore('ecs', {
 				name: 'quarry',
 				components: {
 					VisualC: { texture: 'quarry' },
-					WorldC: {},
 					BuildableC: {},
 				},
 			},
@@ -134,7 +106,6 @@ export const useEcsStore = defineStore('ecs', {
 				name: 'house',
 				components: {
 					VisualC: { texture: 'house' },
-					WorldC: {},
 					BuildableC: {},
 				},
 			},
@@ -142,7 +113,6 @@ export const useEcsStore = defineStore('ecs', {
 				name: 'errorobj',
 				components: {
 					VisualC: { texture: 'aiosjjf' },
-					WorldC: {},
 					BuildableC: {},
 				},
 			},
@@ -150,54 +120,40 @@ export const useEcsStore = defineStore('ecs', {
 		entities: [] as Entity[],
 		_entityCount: 0,
 	}),
+
 	getters: {},
+
 	actions: {
-		// fetch
+		// ===== FETCH ACTIONS =====
 		getEntityById(id: string): Entity | undefined {
 			return this.entities.find((e) => e.id === id)
 		},
+
 		getPrefabByName(name: string): Prefab | undefined {
 			return this.prefabs.find((p) => p.name === name)
 		},
 
-		// core
-		/*getComponent<
+		// ===== COMPONENT ACCESS (STRICT) =====
+		getComponent<
 			T extends Entity | Prefab,
-			K extends keyof EntityComponentRegistry | keyof PrefabComponentRegistry,
-			O extends boolean | undefined = false
-		>(
-			obj: T | undefined,
-			component: K,
-			optional?: O
-		): O extends true ? ComponentOf<T, K> | undefined : ComponentOf<T, K> {
-			if (!obj) {
-				if (optional) return undefined as any
-				throw new Error('Entity or Prefab is undefined')
-			}
+			K extends keyof EntityComponentRegistry | keyof PrefabComponentRegistry
+		>(obj: T | undefined, component: K): ComponentOf<T, K> {
+			if (!obj) throw new Error('Entity or Prefab is undefined')
 
 			const c = obj.components[component as keyof typeof obj.components]
 
-			if (c === undefined && !optional) {
+			if (c === undefined) {
 				throw new Error(
-					`'${component}' component is missing on ${
+					`'${String(component)}' component is missing on ${
 						'prefab' in obj ? 'Prefab' : 'Entity'
 					}`
 				)
 			}
 
 			return c as ComponentOf<T, K>
-		},*/
-		getComponent<
-			T extends Entity | Prefab,
-			K extends keyof EntityComponentRegistry | keyof PrefabComponentRegistry
-		>(obj: T | undefined, component: K): ComponentOf<T, K> {
-			if (!obj) throw new Error('Entity or Prefab is undefined')
-			const c = obj.components[component as keyof typeof obj.components]
-			if (c === undefined) {
-				throw new Error(`'${component}' component is missing`)
-			}
-			return c as ComponentOf<T, K>
 		},
+
+		// ===== COMPONENT ACCESS (OPTIONAL) =====
 		tryGetComponent<
 			T extends Entity | Prefab,
 			K extends keyof EntityComponentRegistry | keyof PrefabComponentRegistry
@@ -207,90 +163,177 @@ export const useEcsStore = defineStore('ecs', {
 				| ComponentOf<T, K>
 				| undefined
 		},
-		hasComponent(obj: Entity | Prefab, component: string): boolean {
-			if ('prefab' in obj) {
-				return (
-					obj.components[component as keyof EntityComponentRegistry] !==
-					undefined
-				)
-			} else {
-				return (
-					obj.components[component as keyof PrefabComponentRegistry] !==
-					undefined
-				)
-			}
+
+		// ===== COMPONENT CHECKS =====
+		hasComponent(obj: Entity | Prefab | undefined, component: string): boolean {
+			if (!obj) return false
+
+			return (
+				obj.components[component as keyof typeof obj.components] !== undefined
+			)
 		},
-		/*getComponent(
-			obj: Entity | Prefab,
-			component: keyof EntityComponentRegistry | keyof PrefabComponentRegistry
-		) {
-			if ('prefab' in obj) {
-				// Entity
-				return obj.components[component as keyof EntityComponentRegistry]
-			} else {
-				// Prefab
-				return obj.components[component as keyof PrefabComponentRegistry]
-			}
-		},*/
+
+		// ===== COMPONENT INITIALIZATION =====
 		initComponent(component: string): EntityComponent | undefined {
-			// initialize default values for components when creating an entity
-			// there isnt such function for prefabs, because they will be defined manually, and shouldn't have a fallback
-			/*switch (component) {
-				case 'WorldC':
-					return { x: 0, y: 0 }
-				case 'ItemC':
-					return { amount: 1 }
-				case 'VisualC':
-					return {}
-				case 'ControlC':
-					return { controller: '', owner: '' }
-				case 'HealthC':
-					return { current: 100 }
-				default:
-					return undefined
-			}*/
-			return _.cloneDeep(COMPONENT_DEFAULTS as any)[component]
+			const factory = (COMPONENT_DEFAULTS as any)[component]
+			if (typeof factory === 'function') {
+				return factory()
+			}
+			return undefined
 		},
+
+		// ===== COMPONENT QUERIES =====
 		getPrefabsWithComponent(component: string): Prefab[] {
 			return this.prefabs.filter((p) => this.hasComponent(p, component))
 		},
+
 		getEntitiesWithComponent(component: string): Entity[] {
 			return this.entities.filter((e) => this.hasComponent(e, component))
 		},
 
-		// prefab management
-		// first do entityFromComponent, then createEntity
-		entityFromPrefab(prefabName: string): Entity {
-			const prefab = this.getPrefabByName(prefabName) as Prefab | undefined
+		// ===== DRAFT MANAGEMENT =====
+		createDraft(prefabName: string): EntityDraft {
+			const prefab = this.getPrefabByName(prefabName)
 			if (!prefab) {
 				throw new Error(`Prefab '${prefabName}' not found`)
 			}
-			let components: Partial<EntityComponentRegistry> = {}
-			for (const compName of Object.keys(prefab.components)) {
-				const comp = this.initComponent(compName)
-				// @ts-ignore
-				components[compName] = comp
+
+			const components: Partial<EntityComponentRegistry> = {}
+
+			// Initialize all components from prefab template
+			for (const componentName of Object.keys(prefab.components)) {
+				const initialized = this.initComponent(componentName)
+				components[componentName as keyof EntityComponentRegistry] = initialized
 			}
+
+			// Always ensure WorldC exists for entities
+			if (!components['WorldC']) {
+				components['WorldC'] = { x: 0, y: 0 }
+			}
+
 			return {
-				id: '0',
-				prefab: prefab,
-				components: components as Partial<EntityComponentRegistry>,
-				/*components: Object.fromEntries(
-					Object.keys(prefab.components).map((v) => [v, this.initComponent(v)])
-				),*/
+				prefab,
+				components,
 			}
 		},
+
+		updateDraft<K extends keyof EntityComponentRegistry>(
+			draft: EntityDraft,
+			component: K,
+			value: EntityComponentRegistry[K]
+		): void {
+			draft.components[component] = value
+		},
+
+		discardDraft(draft: EntityDraft): void {
+			// Cleanup if needed
+		},
+
+		// ===== ENTITY CREATION (LOCAL) =====
+		commitDraft(draft: EntityDraft): Entity {
+			const entity: Entity = {
+				id: draft.id ?? String(this._entityCount++),
+				prefab: draft.prefab,
+				components: draft.components,
+			}
+			this.entities.push(entity)
+			return entity
+		},
+
 		createEntity(e: Entity): Entity {
-			// do we just blindly trust that it has the correct components?
 			const newEntity: Entity = {
-				//id: crypto.randomUUID(),
-				id: String(this._entityCount),
+				id: String(this._entityCount++),
 				prefab: e.prefab,
 				components: e.components,
 			}
-			this._entityCount++
 			this.entities.push(newEntity)
 			return newEntity
+		},
+
+		deleteEntity(id: string): void {
+			this.entities = this.entities.filter((e) => e.id !== id)
+		},
+
+		// ===== LEGACY ENTITY CREATION (FROM PREFAB) =====
+		entityFromPrefab(prefabName: string): Entity {
+			const prefab = this.getPrefabByName(prefabName)
+			if (!prefab) {
+				throw new Error(`Prefab '${prefabName}' not found`)
+			}
+
+			const components: Partial<EntityComponentRegistry> = {}
+
+			// Initialize all components from prefab template
+			for (const componentName of Object.keys(prefab.components)) {
+				const initialized = this.initComponent(componentName)
+				components[componentName as keyof EntityComponentRegistry] = initialized
+			}
+
+			// Always ensure WorldC exists for entities
+			if (!components['WorldC']) {
+				components['WorldC'] = { x: 0, y: 0 }
+			}
+
+			return {
+				id: '0',
+				prefab,
+				components,
+			}
+		},
+
+		// ===== GRAPHQL SUBMISSION =====
+		async submitEntity(draft: EntityDraft): Promise<Entity> {
+			try {
+				const response = await $fetch('/graphql', {
+					method: 'POST',
+					body: {
+						query: `mutation CreateEntity($input: EntityInput!) {
+                            createEntity(input: $input) {
+                                id
+                                prefab { name }
+                                components
+                            }
+                        }`,
+						variables: {
+							input: {
+								prefabName: draft.prefab.name,
+								components: Object.fromEntries(
+									Object.entries(draft.components)
+										.filter(([_, v]) => v !== undefined)
+										.map(([k, v]) => [k, JSON.stringify(v)])
+								),
+							},
+						},
+					},
+				})
+
+				// Server returns the entity with ID
+				draft.id = response.data.createEntity.id
+				return this.commitDraft(draft)
+			} catch (error) {
+				console.error('Failed to submit entity:', error)
+				throw error
+			}
+		},
+
+		async deleteEntityFromServer(id: string): Promise<void> {
+			try {
+				await $fetch('/graphql', {
+					method: 'POST',
+					body: {
+						query: `mutation DeleteEntity($id: String!) {
+                            deleteEntity(id: $id) { id }
+                        }`,
+						variables: { id },
+					},
+				})
+
+				// Remove from local store
+				this.deleteEntity(id)
+			} catch (error) {
+				console.error('Failed to delete entity:', error)
+				throw error
+			}
 		},
 	},
 })
