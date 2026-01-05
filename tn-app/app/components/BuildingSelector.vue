@@ -13,7 +13,7 @@
 					<UButton
 						@click="selectBuilding(building)"
 						:color="
-							currentBuilding?.name === building.name ? 'primary' : 'gray'
+							currentBuilding?.name === building.name ? 'primary' : 'secondary'
 						"
 						:variant="
 							currentBuilding?.name === building.name ? 'solid' : 'ghost'
@@ -53,7 +53,7 @@
 				</div>
 
 				<UButton
-					color="red"
+					color="error"
 					@click="deleteSelectedEntity"
 					:loading="isDeleting"
 					block

@@ -10,9 +10,10 @@
 </template>
 
 <script setup lang="ts">
-import { ColonyScene } from '~/scenes/ColonyScene4'
+import { ColonyScene } from '~/scenes/ColonyScene'
 import { useEcsStore } from '~/store/ecs'
 import { useGameStore } from '~/store/game'
+import { useUiStore } from '~/store/ui'
 
 definePageMeta({
 	layout: 'blank',
@@ -21,6 +22,7 @@ definePageMeta({
 const game = ref<ColonyScene | undefined>(undefined)
 const ecsStore = useEcsStore()
 const gameStore = useGameStore()
+const uiStore = useUiStore()
 
 const handleResize = () => {
 	game.value?.resize()
@@ -28,7 +30,9 @@ const handleResize = () => {
 
 onMounted(() => {
 	game.value = new ColonyScene('game-container', {
-		store: ecsStore,
+		ecsStore,
+		gameStore,
+		uiStore,
 	})
 
 	window.addEventListener('resize', handleResize)

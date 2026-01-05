@@ -1,17 +1,17 @@
+// app/scenes/ColonyScene4.ts
 import Phaser from 'phaser'
 import { seed, simplex2 } from './noise'
 import { BaseScene } from './BaseScene'
-import {
-	useEcsStore,
-	type Entity,
-	type EntityComponentRegistry,
-	type PrefabComponentRegistry,
+import type {
+	Entity,
+	EntityComponentRegistry,
+	PrefabComponentRegistry,
 } from '~/store/ecs'
-import { useGameStore } from '~/store/game'
-import { useUiStore } from '~/store/ui'
 
 interface ColonySceneState {
-	store: ReturnType<typeof useEcsStore>
+	ecsStore: ReturnType<any> // ECS store passed from Vue
+	gameStore: ReturnType<any> // Game store passed from Vue
+	uiStore: ReturnType<any> // UI store passed from Vue
 }
 
 interface IsometricTile {
@@ -20,13 +20,6 @@ interface IsometricTile {
 	centerX: number
 	centerY: number
 	centerZ?: number
-}
-
-interface Building {
-	id: string
-	q: number
-	r: number
-	sprite: Phaser.GameObjects.Image
 }
 
 const TILE_WIDTH = 64
@@ -71,9 +64,6 @@ class MainScene extends Phaser.Scene {
 	create() {
 		seed(Math.random() * 10000)
 
-		const gameStore = useGameStore()
-		const uiStore = useUiStore()
-
 		// Setup
 		this.setupCamera()
 		this.terrainLayer = this.add.container(0, 0)
@@ -88,43 +78,40 @@ class MainScene extends Phaser.Scene {
 		this.input.on('pointerdown', this.handlePointerDown, this)
 
 		// Listen to game store events
-		gameStore.on('building:start', (draft) => {
+		this.state.gameStore.on('building:start', (draft: any) => {
 			this.showBuildingPreview(draft)
 		})
 
-		gameStore.on('building:preview', () => {
+		this.state.gameStore.on('building:preview', () => {
 			this.updateBuildingPreview(
-				gameStore.game.buildingDraft,
-				gameStore.game.draftPosition
+				this.state.gameStore.game.buildingDraft,
+				this.state.gameStore.game.draftPosition
 			)
 		})
 
-		gameStore.on('building:placed', () => {
+		this.state.gameStore.on('building:placed', () => {
 			this.hideBuildingPreview()
 			this.syncFromStore()
 		})
 
-		gameStore.on('building:cancelled', () => {
+		this.state.gameStore.on('building:cancelled', () => {
 			this.hideBuildingPreview()
 		})
 
-		gameStore.on('entity:selected', (entityId) => {
+		this.state.gameStore.on('entity:selected', (entityId: string) => {
 			this.highlightEntity(entityId)
 		})
 
-		gameStore.on('entity:deselected', () => {
+		this.state.gameStore.on('entity:deselected', () => {
 			this.clearHighlight()
 		})
 
-		gameStore.on('entity:deleted', () => {
+		this.state.gameStore.on('entity:deleted', () => {
 			this.syncFromStore()
 		})
 
 		// Initial sync
 		this.syncFromStore()
-
-		// Emit scene ready
-		gameStore.emit('scene:ready')
 	}
 
 	private setupCamera() {
@@ -229,10 +216,12 @@ class MainScene extends Phaser.Scene {
 
 	syncFromStore() {
 		const currentIds = new Set(this.objectsContainer.list.map((c) => c.name))
-		const storeIds = new Set(this.state.store.entities.map((o) => o.id))
+		const storeIds = new Set(
+			this.state.ecsStore.entities.map((o: Entity) => o.id)
+		)
 
 		// Add new entities
-		for (const e of this.state.store.entities) {
+		for (const e of this.state.ecsStore.entities) {
 			if (!currentIds.has(e.id)) {
 				this.addObject(e)
 			}
@@ -250,15 +239,15 @@ class MainScene extends Phaser.Scene {
 	}
 
 	addObject(e: Entity) {
-		const visualc = this.state.store.tryGetComponent(e.prefab, 'VisualC')
-		const worldc = this.state.store.tryGetComponent(e, 'WorldC')
+		const visualc = this.state.ecsStore.tryGetComponent(e.prefab, 'VisualC')
+		const worldc = this.state.ecsStore.tryGetComponent(e, 'WorldC')
 
 		if (!worldc) {
 			console.warn('Entity', e.id, 'is missing WorldC component')
 			return
 		}
 
-		// Find position in world space (not using tiles anymore)
+		// Find position in world space
 		const screenPos = this.qrToScreen(worldc.x, worldc.y)
 
 		const sprite = this.add.image(
@@ -279,19 +268,17 @@ class MainScene extends Phaser.Scene {
 
 		// Click to select
 		sprite.on('pointerdown', () => {
-			const gameStore = useGameStore()
-			gameStore.selectEntity(e.id)
+			this.state.gameStore.selectEntity(e.id)
 		})
 
 		this.objectsContainer.add(sprite)
 	}
 
 	private handlePointerMove(pointer: Phaser.Input.Pointer) {
-		const gameStore = useGameStore()
 		const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
 		const { q, r } = this.screenToQr(worldPoint.x, worldPoint.y)
 
-		gameStore.updateHoveredPos({ q, r })
+		this.state.gameStore.updateHoveredPos({ q, r })
 		this.hoveredPos = { q, r }
 
 		// Update cursor
@@ -311,13 +298,15 @@ class MainScene extends Phaser.Scene {
 	}
 
 	private handlePointerDown(pointer: Phaser.Input.Pointer) {
-		const gameStore = useGameStore()
+		if (
+			!this.state.gameStore.isPlacingBuilding ||
+			!this.state.gameStore.hoveredPos
+		)
+			return
 
-		if (!gameStore.isPlacingBuilding || !gameStore.hoveredPos) return
-
-		const pos = gameStore.hoveredPos
-		gameStore.updatePlacementPosition(pos)
-		gameStore.confirmPlacement()
+		const pos = this.state.gameStore.hoveredPos
+		this.state.gameStore.updatePlacementPosition(pos)
+		this.state.gameStore.confirmPlacement()
 	}
 
 	private showBuildingPreview(draft: any) {
@@ -344,13 +333,18 @@ class MainScene extends Phaser.Scene {
 
 	private highlightEntity(entityId: string) {
 		const sprite = this.objectsContainer.list.find((c) => c.name === entityId)
-		if (sprite) {
+		if (sprite && sprite instanceof Phaser.GameObjects.Image) {
 			sprite.setTint(COLORS.selected)
 		}
 	}
 
 	private clearHighlight() {
-		this.objectsContainer.list.forEach((c) => c.clearTint())
+		//this.objectsContainer.list.forEach((c) => c.clearTint())
+		for (const c of this.objectsContainer.list) {
+			if (c instanceof Phaser.GameObjects.Image) {
+				c.clearTint()
+			}
+		}
 	}
 
 	private qrToScreen(q: number, r: number) {

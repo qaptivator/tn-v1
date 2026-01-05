@@ -7,12 +7,12 @@
 				:title="notification.message"
 				:color="
 					notification.type === 'error'
-						? 'red'
+						? 'error'
 						: notification.type === 'success'
-						? 'green'
-						: 'blue'
+						? 'success'
+						: 'info'
 				"
-				:ui="{ container: 'pointer-events-auto' }"
+				:ui="{ root: 'pointer-events-auto' }"
 				class="max-w-xs"
 			/>
 		</TransitionGroup>

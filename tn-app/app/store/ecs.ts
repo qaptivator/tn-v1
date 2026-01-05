@@ -1,3 +1,4 @@
+// app/store/ecs.ts
 import { defineStore } from 'pinia'
 import _ from 'lodash'
 
@@ -203,6 +204,7 @@ export const useEcsStore = defineStore('ecs', {
 			// Initialize all components from prefab template
 			for (const componentName of Object.keys(prefab.components)) {
 				const initialized = this.initComponent(componentName)
+				//@ts-ignore
 				components[componentName as keyof EntityComponentRegistry] = initialized
 			}
 
@@ -266,6 +268,7 @@ export const useEcsStore = defineStore('ecs', {
 			// Initialize all components from prefab template
 			for (const componentName of Object.keys(prefab.components)) {
 				const initialized = this.initComponent(componentName)
+				//@ts-ignore
 				components[componentName as keyof EntityComponentRegistry] = initialized
 			}
 
@@ -281,59 +284,24 @@ export const useEcsStore = defineStore('ecs', {
 			}
 		},
 
-		// ===== GRAPHQL SUBMISSION =====
+		// ===== SUBMISSION (LOCAL ONLY) =====
 		async submitEntity(draft: EntityDraft): Promise<Entity> {
-			try {
-				const response = await $fetch('/graphql', {
-					method: 'POST',
-					body: {
-						query: `mutation CreateEntity($input: EntityInput!) {
-                            createEntity(input: $input) {
-                                id
-                                prefab { name }
-                                components
-                            }
-                        }`,
-						variables: {
-							input: {
-								prefabName: draft.prefab.name,
-								components: Object.fromEntries(
-									Object.entries(draft.components)
-										.filter(([_, v]) => v !== undefined)
-										.map(([k, v]) => [k, JSON.stringify(v)])
-								),
-							},
-						},
-					},
-				})
+			// Simulate async operation for future GraphQL integration
+			await new Promise((resolve) => setTimeout(resolve, 100))
 
-				// Server returns the entity with ID
-				draft.id = response.data.createEntity.id
-				return this.commitDraft(draft)
-			} catch (error) {
-				console.error('Failed to submit entity:', error)
-				throw error
-			}
+			// Generate ID locally
+			draft.id = String(this._entityCount++)
+
+			return this.commitDraft(draft)
 		},
 
+		// ===== DELETION (LOCAL ONLY) =====
 		async deleteEntityFromServer(id: string): Promise<void> {
-			try {
-				await $fetch('/graphql', {
-					method: 'POST',
-					body: {
-						query: `mutation DeleteEntity($id: String!) {
-                            deleteEntity(id: $id) { id }
-                        }`,
-						variables: { id },
-					},
-				})
+			// Simulate async operation for future GraphQL integration
+			await new Promise((resolve) => setTimeout(resolve, 100))
 
-				// Remove from local store
-				this.deleteEntity(id)
-			} catch (error) {
-				console.error('Failed to delete entity:', error)
-				throw error
-			}
+			// Remove from local store
+			this.deleteEntity(id)
 		},
 	},
 })
