@@ -25,6 +25,7 @@ interface IsometricTile {
 const TILE_WIDTH = 64
 const TILE_HEIGHT = 32
 const TILE_THICKNESS = 12
+const CURSOR_TWEEN_DURATION = 50
 
 const COLORS = {
 	grass: { top: 0x7ebd73, side: 0x5a8f52 },
@@ -239,17 +240,25 @@ class MainScene extends Phaser.Scene {
 			}
 		}
 
-		// Remove deleted entities
+		// Remove deleted entities with animation
 		for (const c of this.objectsContainer.list) {
 			if (!storeIds.has(c.name)) {
-				c.destroy()
+				this.tweens.add({
+					targets: c,
+					scaleX: 0,
+					scaleY: 0,
+					duration: 300,
+					ease: 'Back.in',
+					onComplete: () => {
+						c.destroy()
+					},
+				})
 			}
 		}
 
 		// Re-sort by depth
 		this.objectsContainer.sort('depth')
 	}
-
 	addObject(e: Entity) {
 		const visualc = this.state.ecsStore.tryGetComponent(e.prefab, 'VisualC')
 		const worldc = this.state.ecsStore.tryGetComponent(e, 'WorldC')
@@ -260,10 +269,11 @@ class MainScene extends Phaser.Scene {
 		}
 
 		const screenPos = this.qrToScreen(worldc.x, worldc.y)
+		const finalY = screenPos.y + TILE_HEIGHT / 2 + 14
 
 		const sprite = this.add.image(
 			screenPos.x + TILE_WIDTH / 2,
-			screenPos.y + TILE_HEIGHT / 2 + 14,
+			finalY,
 			visualc ? visualc.texture : 'default'
 		)
 		sprite.name = e.id
@@ -271,23 +281,74 @@ class MainScene extends Phaser.Scene {
 		const desiredWidth = TILE_WIDTH * 0.8
 		const scale = desiredWidth / sprite.width
 
-		sprite.setScale(scale)
+		sprite.setScale(0) // Start at scale 0 (invisible)
 		sprite.setOrigin(0.5, 1.0)
 		sprite.setDepth(sprite.y)
 		sprite.setInteractive()
 
 		// Click to select
 		sprite.on('pointerdown', () => {
-			// Clear previous highlight
 			this.clearHighlight()
-			// Select new entity
 			this.state.gameStore.selectEntity(e.id)
 		})
 
 		this.objectsContainer.add(sprite)
+
+		// Animate growing in
+		this.tweens.add({
+			targets: sprite,
+			scaleX: scale,
+			scaleY: scale,
+			duration: 400,
+			ease: 'Back.out',
+		})
 	}
 
 	private handlePointerMove(pointer: Phaser.Input.Pointer) {
+		const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
+		const { q, r } = this.screenToQr(worldPoint.x, worldPoint.y)
+
+		this.state.gameStore.updateHoveredPos({ q, r })
+		this.hoveredPos = { q, r }
+
+		// Update building preview if placing
+		if (this.state.gameStore.isPlacingBuilding) {
+			this.updateBuildingPreview(this.state.gameStore.buildingDraft, { q, r })
+		}
+
+		// Don't show cursor if over UI
+		if (this.isPointerOverUI) {
+			return
+		}
+
+		// Calculate target position
+		const screenPos = this.qrToScreen(q, r)
+		const targetX = screenPos.x
+		const targetY = screenPos.y
+
+		// Animate cursor to new position
+		this.tweens.add({
+			targets: this.cursorGraphics,
+			x: targetX,
+			y: targetY,
+			duration: CURSOR_TWEEN_DURATION,
+			ease: 'Linear',
+			overwrite: 'auto', // Cancel previous tween if still running
+		})
+
+		// Redraw cursor at new position (graphics don't move, we update position)
+		this.cursorGraphics.clear()
+		this.cursorGraphics.lineStyle(2, COLORS.highlight, 1)
+		this.cursorGraphics.beginPath()
+		this.cursorGraphics.moveTo(TILE_WIDTH / 2, 0)
+		this.cursorGraphics.lineTo(TILE_WIDTH, TILE_HEIGHT / 2)
+		this.cursorGraphics.lineTo(TILE_WIDTH / 2, TILE_HEIGHT)
+		this.cursorGraphics.lineTo(0, TILE_HEIGHT / 2)
+		this.cursorGraphics.closePath()
+		this.cursorGraphics.strokePath()
+	}
+
+	/*private handlePointerMove(pointer: Phaser.Input.Pointer) {
 		const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
 		const { q, r } = this.screenToQr(worldPoint.x, worldPoint.y)
 
@@ -319,7 +380,7 @@ class MainScene extends Phaser.Scene {
 		this.cursorGraphics.lineTo(x, y + TILE_HEIGHT / 2)
 		this.cursorGraphics.closePath()
 		this.cursorGraphics.strokePath()
-	}
+	}*/
 
 	private handlePointerDown(pointer: Phaser.Input.Pointer) {
 		if (
