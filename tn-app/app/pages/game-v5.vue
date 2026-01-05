@@ -20,7 +20,7 @@
 </template>
 <script setup lang="ts">
 import { ColonyScene } from '~/scenes/ColonyScene4'
-import { useEcsStore, type Prefab } from '~/store/ecs'
+import { useEcsStore, type Prefab, type Entity } from '~/store/ecs'
 
 // TODO: check currentBulding not by name, but by id (requires a factory function for prefabs)
 const game = ref<ColonyScene | undefined>(undefined)
