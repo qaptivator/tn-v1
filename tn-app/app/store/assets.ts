@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 
-type ParsedAssetPath = {
+export type ParsedAssetPath = {
 	namespace: string
 	type: string
 	category: string
@@ -8,18 +8,24 @@ type ParsedAssetPath = {
 	purpose: string
 }
 
+type AssetCategory = 'entity' | 'ui'
 type AssetType = 'texture' | 'model' | 'sound' | 'music' | 'atlas'
 type AssetPurpose = 'world' | 'icon' //| 'ghost' | 'place' | 'damaged'
-type AssetPath = `tn:${AssetType}/${'entity' | 'ui'}/${string}/${AssetPurpose}`
+export type AssetPath =
+	`tn:${AssetType}/${AssetCategory}/${string}/${AssetPurpose}`
 
 type AssetMapped = {
 	path: AssetPath
 	url: string
 }
 
-export const useEcsStore = defineStore('assets', {
+export const useAssetsStore = defineStore('assets', {
 	state: () => ({
 		assets: [
+			{
+				path: 'tn:texture/ui/error',
+				url: 'textures/colony/error.png',
+			},
 			{
 				path: 'tn:texture/entity/factory/world',
 				url: 'textures/colony/factory.png',
@@ -76,11 +82,12 @@ export const useEcsStore = defineStore('assets', {
 				purpose: purpose ?? '',
 			}
 		},
-		fetchAssetUrl(assetPath: AssetPath): {
+		getAssetUrl(assetPath?: AssetPath): {
 			base: string // /texture/entity/factory/world
 			rel: string // texture/entity/factory/world
 			full: string // https://example.com/texture/entity/factory/world
 		} {
+			if (!assetPath) throw new Error(`Asset path is undefined (${assetPath})`)
 			const asset = this.assets.find((a) => a.path === assetPath)
 			if (!asset) throw new Error(`Asset not found (${assetPath})`)
 			const normUrl = asset.url.endsWith('/')

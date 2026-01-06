@@ -1,5 +1,6 @@
 // app/store/ecs.ts
 import { defineStore } from 'pinia'
+import { type AssetPath } from './assets'
 import _ from 'lodash'
 
 type BoundingBox = {
@@ -9,7 +10,7 @@ type BoundingBox = {
 type EmptyC = {}
 type NullC = undefined
 
-// #region Components Config
+// #region components
 export interface PrefabComponentRegistry {
 	WorldC: EmptyC
 	ItemC: {
@@ -18,7 +19,8 @@ export interface PrefabComponentRegistry {
 		collisionBox: BoundingBox
 	}
 	VisualC: {
-		texture: string
+		texture: AssetPath
+		icon: AssetPath
 	}
 	ControlC: EmptyC
 	HealthC: {
@@ -61,6 +63,8 @@ const COMPONENT_DEFAULTS = {
 }
 // #endregion
 
+// #region stuff
+// #endregion
 export type PrefabComponent =
 	| EntityComponentRegistry[keyof EntityComponentRegistry]
 	| undefined
@@ -99,7 +103,10 @@ export const useEcsStore = defineStore('ecs', {
 			{
 				name: 'factory',
 				components: {
-					VisualC: { texture: 'factory' },
+					VisualC: {
+						texture: 'tn:texture/entity/factory/world',
+						icon: 'tn:texture/entity/factory/icon',
+					},
 					BuildableC: {},
 					MoveC: { distance: 3 },
 				},
@@ -107,24 +114,30 @@ export const useEcsStore = defineStore('ecs', {
 			{
 				name: 'quarry',
 				components: {
-					VisualC: { texture: 'quarry' },
+					VisualC: {
+						texture: 'tn:texture/entity/quarry/world',
+						icon: 'tn:texture/entity/quarry/icon',
+					},
 					BuildableC: {},
 				},
 			},
 			{
 				name: 'house',
 				components: {
-					VisualC: { texture: 'house' },
+					VisualC: {
+						texture: 'tn:texture/entity/house/world',
+						icon: 'tn:texture/entity/house/icon',
+					},
 					BuildableC: {},
 				},
 			},
-			{
+			/*{
 				name: 'errorobj',
 				components: {
 					VisualC: { texture: 'aiosjjf' },
 					BuildableC: {},
 				},
-			},
+			},*/
 		] as Prefab[],
 		entities: [] as Entity[],
 		_entityCount: 0,

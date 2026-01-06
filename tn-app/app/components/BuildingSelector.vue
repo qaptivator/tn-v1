@@ -21,8 +21,11 @@
 						size="lg"
 						class="h-20 w-20"
 					>
+						<!-- :src="`textures/colony/${building.components.VisualC?.texture}.png`" -->
 						<img
-							:src="`textures/colony/${building.components.VisualC?.texture}.png`"
+							:src="
+								assetsStore.getAssetUrl(building.components.VisualC?.icon).base
+							"
 							class="h-16 w-16 object-contain"
 							:alt="building.name"
 						/>
@@ -131,10 +134,12 @@
 import { useGameStore } from '~/store/game'
 import { useEcsStore, type Prefab, type Entity } from '~/store/ecs'
 import { useUiStore } from '~/store/ui'
+import { useAssetsStore } from '~/store/assets'
 
 const gameStore = useGameStore()
 const ecsStore = useEcsStore()
 const uiStore = useUiStore()
+const assetsStore = useAssetsStore()
 
 const buildings = ref<Prefab[]>([])
 const currentBuilding = ref<Prefab | undefined>(undefined)

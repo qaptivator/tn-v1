@@ -14,6 +14,7 @@ import { ColonyScene } from '~/scenes/ColonyScene'
 import { useEcsStore } from '~/store/ecs'
 import { useGameStore } from '~/store/game'
 import { useUiStore } from '~/store/ui'
+import { useAssetsStore } from '~/store/assets'
 
 definePageMeta({
 	layout: 'blank',
@@ -23,6 +24,7 @@ const game = ref<ColonyScene | undefined>(undefined)
 const ecsStore = useEcsStore()
 const gameStore = useGameStore()
 const uiStore = useUiStore()
+const assetsStore = useAssetsStore()
 
 const handleResize = () => {
 	game.value?.resize()
@@ -33,6 +35,7 @@ onMounted(() => {
 		ecsStore,
 		gameStore,
 		uiStore,
+		assetsStore,
 	})
 
 	window.addEventListener('resize', handleResize)
