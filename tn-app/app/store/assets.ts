@@ -76,7 +76,23 @@ export const useEcsStore = defineStore('assets', {
 				purpose: purpose ?? '',
 			}
 		},
-		fetchAsset(assetPath: AssetPath, type: 'base' | 'full' = 'base') {
+		fetchAssetUrl(assetPath: AssetPath): {
+			base: string // /texture/entity/factory/world
+			rel: string // texture/entity/factory/world
+			full: string // https://example.com/texture/entity/factory/world
+		} {
+			const asset = this.assets.find((a) => a.path === assetPath)
+			if (!asset) throw new Error(`Asset not found (${assetPath})`)
+			const normUrl = asset.url.endsWith('/')
+				? asset.url.slice(0, -1)
+				: asset.url
+			return {
+				base: '/' + normUrl,
+				rel: normUrl,
+				full: window.location.origin + '/' + normUrl,
+			}
+		},
+		/*fetchAsset(assetPath: AssetPath, type: 'base' | 'full' = 'base') {
 			//const parsed = this.parseAssetPath(assetPath)
 			const asset = this.assets.find((a) => a.path === assetPath)
 			if (!asset) throw new Error(`Asset not found (${assetPath})`)
@@ -87,6 +103,6 @@ export const useEcsStore = defineStore('assets', {
 			} else if (type === 'full') {
 				return loc + asset.url
 			}
-		},
+		},*/
 	},
 })
