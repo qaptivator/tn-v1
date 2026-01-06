@@ -1,12 +1,20 @@
 import { defineStore } from 'pinia'
 import { useEcsStore, type EntityDraft, type Entity } from '~/store/ecs'
 
+export type GameMode = 'normal' | 'building' | 'moving'
+
 export const useGameStore = defineStore('game', {
 	state: () => ({
+		// Mode system
+		mode: 'normal' as GameMode,
+
 		// Building placement workflow
 		buildingDraft: undefined as EntityDraft | undefined,
 		draftPosition: undefined as { q: number; r: number } | undefined,
-		isPlacingBuilding: false,
+
+		// Movement workflow
+		movingEntityId: undefined as string | undefined,
+		moveTargetPos: undefined as { q: number; r: number } | undefined,
 
 		// Selection
 		selectedEntityId: undefined as string | undefined,
@@ -19,7 +27,10 @@ export const useGameStore = defineStore('game', {
 	}),
 
 	getters: {
+		isPlacingBuilding: (state) => state.mode === 'building',
+		isMoving: (state) => state.mode === 'moving',
 		canPlaceBuilding: (state) => !!state.buildingDraft && !!state.draftPosition,
+		canMove: (state) => !!state.moveTargetPos,
 		selectedEntity: (state) => {
 			if (!state.selectedEntityId) return undefined
 			const ecs = useEcsStore()
@@ -28,21 +39,26 @@ export const useGameStore = defineStore('game', {
 	},
 
 	actions: {
-		// Building placement
+		// ===== BUILDING ACTIONS =====
 		startPlacingBuilding(prefabName: string) {
 			const ecs = useEcsStore()
 			const draft = ecs.createDraft(prefabName)
+			this.mode = 'building'
 			this.buildingDraft = draft
-			this.isPlacingBuilding = true
+			this.draftPosition = undefined
 			this.emit('building:start', draft)
 		},
 
 		updatePlacementPosition(pos: { q: number; r: number }) {
 			if (!this.buildingDraft) return
 			this.draftPosition = pos
-			const world = useEcsStore().getComponent(this.buildingDraft, 'WorldC')
+
+			// Actually update the draft's WorldC
+			const ecs = useEcsStore()
+			const world = ecs.getComponent(this.buildingDraft, 'WorldC')
 			world.x = pos.q
 			world.y = pos.r
+
 			this.emit('building:preview', pos)
 		},
 
@@ -80,10 +96,85 @@ export const useGameStore = defineStore('game', {
 		clearPlacement() {
 			this.buildingDraft = undefined
 			this.draftPosition = undefined
-			this.isPlacingBuilding = false
+			this.mode = 'normal'
 		},
 
-		// Selection
+		// ===== MOVEMENT ACTIONS =====
+		startMovementMode(entityId: string) {
+			const ecs = useEcsStore()
+			const entity = ecs.getEntityById(entityId)
+			if (!entity) return
+
+			const moveC = ecs.tryGetComponent(entity.prefab, 'MoveC')
+			if (!moveC) return
+
+			this.mode = 'moving'
+			this.movingEntityId = entityId
+			this.moveTargetPos = undefined
+			this.emit('movement:start', entityId)
+		},
+
+		updateMovementTarget(pos: { q: number; r: number }) {
+			if (!this.movingEntityId) return
+
+			const ecs = useEcsStore()
+			const entity = ecs.getEntityById(this.movingEntityId)
+			if (!entity) return
+
+			const moveC = ecs.tryGetComponent(entity.prefab, 'MoveC')
+			if (!moveC) return
+
+			const worldc = ecs.getComponent(entity, 'WorldC')
+			const distance = Math.abs(pos.q - worldc.x) + Math.abs(pos.r - worldc.y)
+
+			// Only update if within range
+			if (distance <= moveC.distance) {
+				this.moveTargetPos = pos
+				this.emit('movement:preview', pos)
+			}
+		},
+
+		async confirmMovement(pos: { q: number; r: number }) {
+			if (!this.movingEntityId) return
+			const ecs = useEcsStore()
+
+			const entity = ecs.getEntityById(this.movingEntityId)
+			if (!entity) return
+
+			const moveC = ecs.tryGetComponent(entity.prefab, 'MoveC')
+			if (!moveC) return
+
+			const worldc = ecs.getComponent(entity, 'WorldC')
+			const distance = Math.abs(pos.q - worldc.x) + Math.abs(pos.r - worldc.y)
+
+			// Validate movement
+			if (distance > moveC.distance) {
+				this.emit('movement:failed', new Error('Target out of range'))
+				return
+			}
+
+			try {
+				// Update position locally
+				worldc.x = pos.q
+				worldc.y = pos.r
+
+				// ✅ Emit event that tells the scene to re-render
+				this.emit('movement:completed', entity)
+				this.cancelMovement()
+			} catch (error) {
+				this.emit('movement:failed', error)
+				throw error
+			}
+		},
+
+		cancelMovement() {
+			this.movingEntityId = undefined
+			this.moveTargetPos = undefined
+			this.mode = 'normal'
+			this.emit('movement:cancelled')
+		},
+
+		// ===== SELECTION ACTIONS =====
 		selectEntity(entityId: string) {
 			// If clicking the same entity, deselect it
 			if (this.selectedEntityId === entityId) {
@@ -114,12 +205,12 @@ export const useGameStore = defineStore('game', {
 			}
 		},
 
-		// Scene state
+		// ===== SCENE STATE =====
 		updateHoveredPos(pos: { q: number; r: number } | undefined) {
 			this.hoveredPos = pos
 		},
 
-		// Event bus
+		// ===== EVENT BUS =====
 		on(event: string, callback: Function) {
 			if (!this._events.has(event)) {
 				this._events.set(event, new Set())

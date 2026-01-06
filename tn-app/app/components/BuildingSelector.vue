@@ -30,10 +30,10 @@
 				</div>
 			</div>
 
-			<!-- Info Panel -->
+			<!-- Info Panel - Selected Entity -->
 			<div
 				v-if="selectedEntity"
-				class="flex-1 bg-gray-900 rounded p-4"
+				class="flex-1 bg-gray-900 rounded p-4 flex flex-col"
 			>
 				<h3 class="text-lg font-bold text-white mb-2">
 					{{ selectedEntity.id }}
@@ -52,19 +52,64 @@
 					</div>
 				</div>
 
+				<!-- Action Buttons -->
+				<div class="space-y-2 flex-1 flex flex-col">
+					<!-- Move Button -->
+					<UButton
+						v-if="hasMoveC && gameStore.mode === 'normal'"
+						color="primary"
+						@click="startMovement"
+					>
+						Move
+					</UButton>
+
+					<!-- Delete Button -->
+					<UButton
+						color="error"
+						@click="deleteSelectedEntity"
+						:loading="isDeleting"
+						block
+					>
+						Delete Building
+					</UButton>
+				</div>
+			</div>
+
+			<!-- Info Panel - Movement Mode -->
+			<div
+				v-else-if="gameStore.mode === 'moving'"
+				class="flex-1 bg-blue-900/30 rounded p-4 flex flex-col"
+			>
+				<p class="text-blue-200 mb-4">
+					<strong>Movement Mode</strong>
+				</p>
+				<div class="space-y-2 mb-4 text-sm text-blue-100">
+					<div>
+						From:
+						<span class="font-mono">{{ fromPos?.x }}, {{ fromPos?.y }}</span>
+					</div>
+					<div v-if="moveTargetPos">
+						To:
+						<span class="font-mono"
+							>{{ moveTargetPos.q }}, {{ moveTargetPos.r }}</span
+						>
+					</div>
+					<div>
+						Range: <span class="font-mono">{{ moveDistance }} tiles</span>
+					</div>
+				</div>
 				<UButton
-					color="error"
-					@click="deleteSelectedEntity"
-					:loading="isDeleting"
-					block
+					color="secondary"
+					@click="cancelMovement"
+					class="mt-auto"
 				>
-					Delete Building
+					Cancel Movement
 				</UButton>
 			</div>
 
 			<!-- Placement Help -->
 			<div
-				v-else-if="isPlacingBuilding"
+				v-else-if="gameStore.mode === 'building'"
 				class="flex-1 bg-yellow-900/30 rounded p-4 flex items-center"
 			>
 				<p class="text-yellow-200">
@@ -93,18 +138,49 @@ const uiStore = useUiStore()
 
 const buildings = ref<Prefab[]>([])
 const currentBuilding = ref<Prefab | undefined>(undefined)
-const isPlacingBuilding = computed(() => gameStore.isPlacingBuilding)
-const selectedEntity = computed(() => gameStore.selectedEntity)
 const isDeleting = ref(false)
+
+const selectedEntity = computed(() => gameStore.selectedEntity)
+const moveTargetPos = computed(() => gameStore.moveTargetPos)
 
 const worldC = computed(() => {
 	if (!selectedEntity.value) return undefined
 	return ecsStore.tryGetComponent(selectedEntity.value, 'WorldC')
 })
 
+const hasMoveC = computed(() => {
+	if (!selectedEntity.value) return false
+	return ecsStore.hasComponent(selectedEntity.value.prefab, 'MoveC')
+})
+
+const fromPos = computed(() => {
+	if (!gameStore.movingEntityId) return undefined
+	const entity = ecsStore.getEntityById(gameStore.movingEntityId)
+	if (!entity) return undefined
+	return ecsStore.tryGetComponent(entity, 'WorldC')
+})
+
+const moveDistance = computed(() => {
+	if (!gameStore.movingEntityId) return 0
+	const entity = ecsStore.getEntityById(gameStore.movingEntityId)
+	if (!entity) return 0
+	const moveC = ecsStore.tryGetComponent(entity.prefab, 'MoveC')
+	return moveC?.distance ?? 0
+})
+
 const selectBuilding = (building: Prefab) => {
 	currentBuilding.value = building
 	gameStore.startPlacingBuilding(building.name)
+}
+
+const startMovement = () => {
+	if (selectedEntity.value) {
+		gameStore.startMovementMode(selectedEntity.value.id)
+	}
+}
+
+const cancelMovement = () => {
+	gameStore.cancelMovement()
 }
 
 const deleteSelectedEntity = async () => {
@@ -126,6 +202,15 @@ onMounted(() => {
 
 	// Listen to deselection
 	gameStore.on('entity:deselected', () => {
+		currentBuilding.value = buildings.value[0]
+	})
+
+	// Listen to movement mode end
+	gameStore.on('movement:cancelled', () => {
+		currentBuilding.value = buildings.value[0]
+	})
+
+	gameStore.on('movement:completed', () => {
 		currentBuilding.value = buildings.value[0]
 	})
 })

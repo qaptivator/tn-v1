@@ -25,6 +25,9 @@ export interface PrefabComponentRegistry {
 		max: number
 	}
 	BuildableC: EmptyC
+	MoveC: {
+		distance: number
+	}
 }
 
 export interface EntityComponentRegistry {
@@ -44,6 +47,7 @@ export interface EntityComponentRegistry {
 		current: number
 	}
 	BuildableC: EmptyC
+	MoveC: EmptyC
 }
 
 const COMPONENT_DEFAULTS = {
@@ -53,6 +57,7 @@ const COMPONENT_DEFAULTS = {
 	ControlC: () => ({ controller: '', owner: '' }),
 	HealthC: () => ({ current: 100 }),
 	BuildableC: () => ({}),
+	MoveC: () => ({}),
 }
 // #endregion
 
@@ -96,6 +101,7 @@ export const useEcsStore = defineStore('ecs', {
 				components: {
 					VisualC: { texture: 'factory' },
 					BuildableC: {},
+					MoveC: { distance: 3 },
 				},
 			},
 			{
