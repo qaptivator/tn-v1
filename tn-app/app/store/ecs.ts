@@ -12,7 +12,9 @@ type NullC = undefined
 
 // #region components
 export interface PrefabComponentRegistry {
-	WorldC: EmptyC
+	WorldC: {
+		snap: boolean
+	}
 	ItemC: {
 		mass: number
 		volume: number
@@ -103,9 +105,21 @@ export const useEcsStore = defineStore('ecs', {
 			{
 				name: 'factory',
 				components: {
+					WorldC: { snap: true },
 					VisualC: {
 						texture: 'tn:texture/entity/factory/world',
 						icon: 'tn:texture/entity/factory/icon',
+					},
+					BuildableC: {},
+				},
+			},
+			{
+				name: 'tank',
+				components: {
+					WorldC: { snap: true },
+					VisualC: {
+						texture: 'tn:texture/entity/tank/world',
+						icon: 'tn:texture/entity/tank/icon',
 					},
 					BuildableC: {},
 					MoveC: { distance: 3 },
@@ -114,6 +128,7 @@ export const useEcsStore = defineStore('ecs', {
 			{
 				name: 'quarry',
 				components: {
+					WorldC: { snap: true },
 					VisualC: {
 						texture: 'tn:texture/entity/quarry/world',
 						icon: 'tn:texture/entity/quarry/icon',
@@ -124,6 +139,7 @@ export const useEcsStore = defineStore('ecs', {
 			{
 				name: 'house',
 				components: {
+					WorldC: { snap: true },
 					VisualC: {
 						texture: 'tn:texture/entity/house/world',
 						icon: 'tn:texture/entity/house/icon',
@@ -233,9 +249,9 @@ export const useEcsStore = defineStore('ecs', {
 			}
 
 			// Always ensure WorldC exists for entities
-			if (!components['WorldC']) {
-				components['WorldC'] = { x: 0, y: 0 }
-			}
+			//if (!components['WorldC']) {
+			//	components['WorldC'] = { x: 0, y: 0 }
+			//}
 
 			return {
 				prefab,

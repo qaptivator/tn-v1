@@ -35,6 +35,14 @@ export const useAssetsStore = defineStore('assets', {
 				url: 'textures/colony/factory.png',
 			},
 			{
+				path: 'tn:texture/entity/tank/world',
+				url: 'textures/colony/tank.png',
+			},
+			{
+				path: 'tn:texture/entity/tank/icon',
+				url: 'textures/colony/tank.png',
+			},
+			{
 				path: 'tn:texture/entity/house/world',
 				url: 'textures/colony/house.png',
 			},
