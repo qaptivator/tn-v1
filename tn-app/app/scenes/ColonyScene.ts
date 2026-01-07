@@ -685,10 +685,20 @@ class MainScene extends Phaser.Scene {
 		return { x, y }
 	}
 
-	private screenToQr(x: number, y: number) {
+	private screenToQr(x: number, y: number, snap: boolean = true) {
 		const q = (y / (TILE_HEIGHT / 2) + x / (TILE_WIDTH / 2)) / 2
 		const r = (y / (TILE_HEIGHT / 2) - x / (TILE_WIDTH / 2)) / 2
-		return { q: Math.round(q) - 1, r: Math.round(r) || 0 }
+		if (snap) {
+			return {
+				q: Math.round(q) - 1,
+				r: Math.round(r) || 0,
+			}
+		} else {
+			return {
+				q: q - 1,
+				r: r,
+			}
+		}
 	}
 }
 
