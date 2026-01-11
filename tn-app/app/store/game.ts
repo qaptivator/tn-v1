@@ -56,8 +56,18 @@ export const useGameStore = defineStore('game', {
 			// Actually update the draft's WorldC
 			const ecs = useEcsStore()
 			const world = ecs.getComponent(this.buildingDraft, 'WorldC')
-			world.x = pos.q
-			world.y = pos.r
+
+			// Check snap setting
+			const snapC = ecs.tryGetComponent(this.buildingDraft.prefab, 'WorldC')
+			const shouldSnap = snapC?.snap ?? true
+
+			if (shouldSnap) {
+				world.x = Math.round(pos.q)
+				world.y = Math.round(pos.r)
+			} else {
+				world.x = pos.q
+				world.y = pos.r
+			}
 
 			this.emit('building:preview', pos)
 		},
@@ -145,7 +155,16 @@ export const useGameStore = defineStore('game', {
 			if (!moveC) return
 
 			const worldc = ecs.getComponent(entity, 'WorldC')
-			const distance = Math.abs(pos.q - worldc.x) + Math.abs(pos.r - worldc.y)
+
+			// Check snap setting
+			const snapC = ecs.tryGetComponent(entity.prefab, 'WorldC')
+			const shouldSnap = snapC?.snap ?? true
+
+			// For non-snapped, calculate distance from actual floating-point position
+			const distance = shouldSnap
+				? Math.abs(Math.round(pos.q) - worldc.x) +
+				  Math.abs(Math.round(pos.r) - worldc.y)
+				: Math.abs(pos.q - worldc.x) + Math.abs(pos.r - worldc.y)
 
 			// Validate movement
 			if (distance > moveC.distance) {
@@ -154,11 +173,15 @@ export const useGameStore = defineStore('game', {
 			}
 
 			try {
-				// Update position locally
-				worldc.x = pos.q
-				worldc.y = pos.r
+				// Update position based on snap setting
+				if (shouldSnap) {
+					worldc.x = Math.round(pos.q)
+					worldc.y = Math.round(pos.r)
+				} else {
+					worldc.x = pos.q
+					worldc.y = pos.r
+				}
 
-				// ✅ Emit event that tells the scene to re-render
 				this.emit('movement:completed', entity)
 				this.cancelMovement()
 			} catch (error) {

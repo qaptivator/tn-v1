@@ -351,6 +351,12 @@ class MainScene extends Phaser.Scene {
 		sprite.setOrigin(0.5, 1.0)
 		sprite.setDepth(sprite.y)
 
+		// detect click
+		sprite.setInteractive() // { useHandCursor: true }
+		sprite.on('pointerdown', () => {
+			this.state.gameStore.selectEntity(e.id)
+		})
+
 		this.objectsContainer.add(sprite)
 
 		// Animate growing in
@@ -363,9 +369,46 @@ class MainScene extends Phaser.Scene {
 		})
 	}
 
+	private shouldSnapToGrid(): boolean {
+		// Check if placing building
+		if (
+			this.state.gameStore.mode === 'building' &&
+			this.state.gameStore.buildingDraft
+		) {
+			const snapC = this.state.ecsStore.tryGetComponent(
+				this.state.gameStore.buildingDraft.prefab,
+				'WorldC'
+			)
+			return snapC?.snap ?? true // Default to true
+		}
+
+		// Check if moving entity
+		if (
+			this.state.gameStore.mode === 'moving' &&
+			this.state.gameStore.movingEntityId
+		) {
+			const entity = this.state.ecsStore.getEntityById(
+				this.state.gameStore.movingEntityId
+			)
+			if (entity) {
+				const snapC = this.state.ecsStore.tryGetComponent(
+					entity.prefab,
+					'WorldC'
+				)
+				return snapC?.snap ?? true
+			}
+		}
+
+		return true // Default snap to grid
+	}
+
 	private handlePointerMove(pointer: Phaser.Input.Pointer) {
 		const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
-		const { q, r } = this.screenToQr(worldPoint.x, worldPoint.y)
+		const { q, r } = this.screenToQr(
+			worldPoint.x,
+			worldPoint.y,
+			this.shouldSnapToGrid()
+		)
 
 		this.state.gameStore.updateHoveredPos({ q, r })
 		this.hoveredPos = { q, r }
@@ -418,9 +461,9 @@ class MainScene extends Phaser.Scene {
 			const pos = this.state.gameStore.hoveredPos
 			this.state.gameStore.confirmMovement(pos)
 		} else {
-			// Selection mode
+			// Selection mode - always snap for click detection
 			const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
-			const { q, r } = this.screenToQr(worldPoint.x, worldPoint.y)
+			const { q, r } = this.screenToQr(worldPoint.x, worldPoint.y, true)
 
 			const clickedEntity = this.state.ecsStore.entities.find((e: Entity) => {
 				const worldc = this.state.ecsStore.tryGetComponent(e, 'WorldC')
@@ -431,7 +474,8 @@ class MainScene extends Phaser.Scene {
 			if (clickedEntity) {
 				this.state.gameStore.selectEntity(clickedEntity.id)
 			} else {
-				this.state.gameStore.deselectEntity()
+				// this was making objects not select on click, since they got instantly deselected
+				//this.state.gameStore.deselectEntity()
 			}
 		}
 	}

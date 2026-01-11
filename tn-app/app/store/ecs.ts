@@ -116,7 +116,7 @@ export const useEcsStore = defineStore('ecs', {
 			{
 				name: 'tank',
 				components: {
-					WorldC: { snap: true },
+					WorldC: { snap: false },
 					VisualC: {
 						texture: 'tn:texture/entity/tank/world',
 						icon: 'tn:texture/entity/tank/icon',
