@@ -1,0 +1,31 @@
+# Terranations Frontend
+
+Terranations (TN) is a persistent, global MMO strategy game set on a 1:1 scale Earth.
+Features include colonies, nations, politics, trading, wars, laws, and asynchronous gameplay allowing millions of players on a single server.
+
+Visual style: futuristic sci-fi neon, blue colors.
+Lore Background: humans came back to earth after a while, so everything starts off modernistic and technological.
+
+@app/pages/index.vue
+@app/store/\*.ts
+
+# Tech Stack
+
+The core UI framework is Nuxt 4, along with Vue, TypeScript TailwindCSS 4 for styling, NuxtUI for components, Pinia for store managment, Three.JS for 3D scenes, Phaser for 2D scenes, Lucide for icons. Additional addons include VueUse and Lodash.
+
+# Architecture
+
+The frontend consists of two scenes: the 3D Earth globe, and the 2D isometric grid.
+The globe has a commanding-hud style ui, meanwhile the grid is the physical view.
+The smallest possible unit is 5x5 cm.
+Buildings/tiles occupy 100x100 units on the grid, and sectors occupy 10000x10000 (0.5x0.5 km).
+You can only see entities on the grid view, since the globe view only shows aggregated data.
+
+Players can buy sectors using real money to build their colonies there. They will _own_ and _control_ every tile in the sector. If another player captures it with military entities, they start _controlling_ it, which allows them to enforce policies on you, but they can never _fully get ownership_ or _destroy friendly buildings_ in your colony.
+
+The entities are managed in an ECS system: components define data schemas, where prefabs define static values of components, and all entities are based off of a prefab, and store per-entity data in the, and various systems can hook up to components and do behaviour.
+
+Gameplay logic is server-side and async, rendering logic is client-side, which clears most cheaters.
+This is NOT an RTS game, because all movements will be chess-like: once a unit is moved, a single request is set to the server to make a movement transaction, and then the client tweens it as needed. This minimizes server usage, and allows for millions of players to be in one world. Although clients will only subscribe to this and neighboring sectors to allow dynamic visuals.
+
+Entities on the grid follow global XY, where XY 0,0 is the lonlat 0,0. This also means that every tile is incremented by 100, and every sector by 10000 respectively. X+ is right/east and Y+ is up/north. The center of a building is the bottom left corner, NOT the center.
