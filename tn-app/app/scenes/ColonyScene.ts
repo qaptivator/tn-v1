@@ -30,6 +30,9 @@ const TILE_WIDTH = 64
 const TILE_HEIGHT = 32
 const TILE_THICKNESS = 12
 const CURSOR_TWEEN_DURATION = 50
+const ZOOM_OUT_THRESHOLD = 0.4
+const MIN_ZOOM = 0.3
+const MAX_ZOOM = 3
 const CURSOR_TWEEN_EASE = 'Linear'
 
 const COLORS = {
@@ -56,6 +59,11 @@ class MainScene extends Phaser.Scene {
 	private cursorGraphics!: Phaser.GameObjects.Graphics
 	private buildingPreviewSprite: Phaser.GameObjects.Image | null = null
 	private movingGhostSprite: Phaser.GameObjects.Image | null = null
+	private zoomWarningText: Phaser.GameObjects.Text | null = null
+	private isTransitioning: boolean = false
+
+	//! TEMPORARY
+	router!: ReturnType<typeof useRouter>
 
 	hoveredPos!: { q: number; r: number } | undefined
 	isPointerOverUI!: boolean
@@ -183,8 +191,17 @@ class MainScene extends Phaser.Scene {
 		this.input.on(
 			'wheel',
 			(pointer: any, gameObjects: any, deltaX: number, deltaY: number) => {
-				const newZoom = cam.zoom - deltaY * 0.001
-				cam.setZoom(Phaser.Math.Clamp(newZoom, 0.5, 3))
+				const newZoom = Phaser.Math.Clamp(
+					cam.zoom - deltaY * 0.001,
+					MIN_ZOOM,
+					MAX_ZOOM
+				)
+				cam.setZoom(newZoom)
+				//! TEMPORARY
+				if (newZoom === MIN_ZOOM) {
+					console.log('going', this.router)
+					if (this.router) this.router.push('/globe')
+				}
 			}
 		)
 	}

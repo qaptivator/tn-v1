@@ -38,6 +38,13 @@ onMounted(() => {
 		assetsStore,
 	})
 
+	//! TEMPORARY
+	if (game.value?.scene) {
+		//@ts-ignore
+		game.value.scene.router = useRouter()
+		console.log('Router attached to scene')
+	}
+
 	window.addEventListener('resize', handleResize)
 })
 

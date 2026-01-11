@@ -1,7 +1,15 @@
 import { defineStore } from 'pinia'
 import { useEcsStore, type EntityDraft, type Entity } from '~/store/ecs'
 
+//! TEMPORARY
+//@ts-ignore
+import { Quaternion, Vector3 } from 'three'
+
 export type GameMode = 'normal' | 'building' | 'moving'
+export type CameraTransform = {
+	position: Vector3
+	quaternion: Quaternion
+}
 
 export const useGameStore = defineStore('game', {
 	state: () => ({
@@ -21,6 +29,9 @@ export const useGameStore = defineStore('game', {
 
 		// Scene state
 		hoveredPos: undefined as { q: number; r: number } | undefined,
+
+		//! TEMPORARY
+		globeCameraTransform: undefined as CameraTransform | undefined,
 
 		// Event bus
 		_events: new Map<string, Set<Function>>(),
