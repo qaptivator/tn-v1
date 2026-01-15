@@ -63,7 +63,7 @@ class MainScene extends Phaser.Scene {
 	private isTransitioning: boolean = false
 
 	//! TEMPORARY
-	router!: ReturnType<typeof useRouter>
+	//router!: ReturnType<typeof useRouter>
 
 	hoveredPos!: { q: number; r: number } | undefined
 	isPointerOverUI!: boolean
@@ -188,7 +188,7 @@ class MainScene extends Phaser.Scene {
 			cam.scrollY -= (p.y - p.prevPosition.y) / cam.zoom
 		})
 
-		this.input.on(
+		/*this.input.on(
 			'wheel',
 			(pointer: any, gameObjects: any, deltaX: number, deltaY: number) => {
 				const newZoom = Phaser.Math.Clamp(
@@ -203,7 +203,7 @@ class MainScene extends Phaser.Scene {
 					if (this.router) this.router.push('/globe')
 				}
 			}
-		)
+		)*/
 	}
 
 	private generateTileGrid(width: number, height: number) {

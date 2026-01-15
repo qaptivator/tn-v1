@@ -270,7 +270,7 @@ function checkZoomThreshold() {
 
 	if (distance < ZOOM_THRESHOLD && !isGridViewThreshold.value) {
 		isGridViewThreshold.value = true
-		gameStore.globeCameraTransform = {
+		/*gameStore.globeCameraTransform = {
 			position: camera.position.clone(),
 			quaternion: camera.quaternion.clone(),
 		}
@@ -278,7 +278,7 @@ function checkZoomThreshold() {
 		setTimeout(() => {
 			destroy()
 			router.push('/game')
-		}, 500)
+		}, 500)*/
 	}
 }
 
