@@ -10,7 +10,7 @@
 </template>
 
 <script setup lang="ts">
-import { ColonyScene } from '~/scenes/ColonyScene'
+import { ColonyScene } from '~/scenes/ColonyScene/index'
 import { useEcsStore } from '~/store/ecs'
 import { useGameStore } from '~/store/game'
 import { useUiStore } from '~/store/ui'
